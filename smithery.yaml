@@ -1,0 +1,25 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - langsmithApiKey
+    properties:
+      langsmithApiKey:
+        type: string
+        description: Your Langsmith API key
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'langsmith-mcp',
+      args: [],
+      env: {
+        LANGCHAIN_API_KEY: config.langsmithApiKey
+      }
+    })
+  exampleConfig:
+    langsmithApiKey: lsv2_pt_1234567890
