@@ -25,7 +25,7 @@ class LangSmithClient:
             api_key: API key for LangSmith API
         """
         self.api_key = api_key
-        os.environ["LANGCHAIN_API_KEY"] = api_key
+        os.environ["LANGSMITH_API_KEY"] = api_key
         self.langsmith_client = Client()
 
     def get_thread_history(self, thread_id: str, project_name: str) -> List[Dict[str, Any]]:
@@ -88,8 +88,8 @@ class LangSmithClient:
         Fetch prompts from LangSmith with optional filtering.
 
         Args:
-            query: Optional search query to filter prompts
-            is_public: Optional boolean to filter public/private prompts
+            query (str): Optional search query to filter prompts
+            is_public (bool): Optional boolean to filter public/private prompts
 
         Returns:
             Dictionary containing the prompts and metadata
@@ -167,7 +167,7 @@ class LangSmithClient:
 mcp = FastMCP("LangSmith API MCP Server")
 
 # Default API key (will be overridden in main or by direct assignment)
-default_api_key = os.environ.get("LANGCHAIN_API_KEY")
+default_api_key = os.environ.get("LANGSMITH_API_KEY")
 langsmith_client = LangSmithClient(default_api_key) if default_api_key else None
 
 
@@ -195,13 +195,13 @@ def get_thread_history(thread_id: str, project_name: str) -> List[Dict[str, Any]
 
 # Add tool for get_prompts
 @mcp.tool()
-def get_prompts(query: Optional[str] = None, is_public: Optional[bool] = None) -> Dict[str, Any]:
+def get_prompts(query: str = "", is_public: str = "false") -> Dict[str, Any]:
     """
     Fetch prompts from LangSmith with optional filtering.
 
     Args:
-        query: Optional search query to filter prompts
-        is_public: Optional boolean to filter public/private prompts
+        query (str): Optional search query to filter prompts
+        is_public (str): Optional string ("true" or "false") to filter public/private prompts
 
     Returns:
         Dictionary containing the prompts and metadata
@@ -210,7 +210,10 @@ def get_prompts(query: Optional[str] = None, is_public: Optional[bool] = None) -
         return {"error": "LangSmith client not initialized. Please provide an API key."}
 
     try:
-        return langsmith_client.get_prompts(query, is_public)
+        # Convert None to empty string for query if needed
+        query_str = query if query is not None else ""
+        is_public_bool = is_public.lower() == "true"
+        return langsmith_client.get_prompts(query_str, is_public_bool)
     except Exception as e:
         return {"error": str(e)}
 

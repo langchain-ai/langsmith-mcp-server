@@ -300,7 +300,7 @@ wheels = [
 ]
 
 [[package]]
-name = "langsmith-mcp"
+name = "langsmith-mcp-server"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

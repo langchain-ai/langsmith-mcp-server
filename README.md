@@ -41,7 +41,7 @@ A production-ready [Model Context Protocol](https://modelcontextprotocol.io/intr
    - This will start the MCP inspector on a network port
    - Install any required libraries when prompted
    - The MCP inspector will be available in your browser
-   - Set the `LANGCHAIN_API_KEY` environment variable in the inspector
+   - Set the `LANGSMITH_API_KEY` environment variable in the inspector
    - Connect to the server
    - Navigate to the "Tools" tab to see all available tools
 
@@ -75,7 +75,7 @@ If you encounter any issues with the above method, you can configure the MCP ser
                 "server.py"
             ],
             "env": {
-                "LANGCHAIN_API_KEY": "your_langsmith_api_key"
+                "LANGSMITH_API_KEY": "your_langsmith_api_key"
             }
         }
     }
@@ -100,7 +100,7 @@ Example configuration:
                 "server.py"
             ],
             "env": {
-                "LANGCHAIN_API_KEY": "lsv2_pt_1234"
+                "LANGSMITH_API_KEY": "lsv2_pt_1234"
             }
         }
     }
