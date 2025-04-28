@@ -36,7 +36,7 @@ A production-ready [Model Context Protocol](https://modelcontextprotocol.io/intr
 
 3. For development, run the MCP inspector:
    ```bash
-   uv run mcp dev src/langsmith_mcp/server.py
+   uv run mcp dev src/langsmith_mcp_server/server.py
    ```
    - This will start the MCP inspector on a network port
    - Install any required libraries when prompted
@@ -51,12 +51,12 @@ A production-ready [Model Context Protocol](https://modelcontextprotocol.io/intr
 
 1. Install the MCP server for Claude Desktop:
    ```bash
-   uv run mcp install src/langsmith_mcp/server.py
+   uv run mcp install src/langsmith_mcp_server/server.py
    ```
 
 2. Run the server:
    ```bash
-   uv run mcp run src/langsmith_mcp/server.py
+   uv run mcp run src/langsmith_mcp_server/server.py
    ```
 
 #### Option 2: Using absolute paths (recommended)
@@ -70,7 +70,7 @@ If you encounter any issues with the above method, you can configure the MCP ser
             "command": "/path/to/uv",
             "args": [
                 "--directory",
-                "/path/to/langsmith-mcp/src/langsmith_mcp",
+                "/path/to/langsmith-mcp-server/src/langsmith_mcp",
                 "run",
                 "server.py"
             ],
@@ -84,7 +84,7 @@ If you encounter any issues with the above method, you can configure the MCP ser
 
 Replace the following placeholders:
 - `/path/to/uv`: The absolute path to your uv installation (e.g., `/Users/username/.local/bin/uv`). You can find it running `which uv`.
-- `/path/to/langsmith-mcp`: The absolute path to your langsmith-mcp project directory
+- `/path/to/langsmith-mcp-server`: The absolute path to your langsmith-mcp project directory
 - `your_langsmith_api_key`: Your LangSmith API key
 
 Example configuration:
