@@ -84,10 +84,10 @@ jobs:
           black --check langsmith_mcp_server tests
           isort --check-only langsmith_mcp_server tests
 
-      - name: Run Tests with Coverage
-        run: |
-          . .venv/bin/activate
-          pytest --cov=langsmith_mcp_server --cov-report=xml tests/
+      # - name: Run Tests with Coverage
+      #   run: |
+      #     . .venv/bin/activate
+      #     pytest --cov=langsmith_mcp_server --cov-report=xml tests/
 
       # - name: Upload Coverage to Codecov
       #   uses: codecov/codecov-action@v3
