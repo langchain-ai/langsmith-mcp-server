@@ -1,6 +1,6 @@
 # LangSmith MCP Server
 
-![LangSmith Cursor Integration](assets/cursor_mcp.png)
+![LangSmith MCP Hero](docs/assets/langsmith_mcp_hero.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
@@ -45,7 +45,7 @@ A production-ready [Model Context Protocol](https://modelcontextprotocol.io/intr
    - Connect to the server
    - Navigate to the "Tools" tab to see all available tools
 
-### Production Setup
+### MCP Client Setup
 
 #### Option 1: Using uv commands
 
@@ -109,6 +109,8 @@ Example configuration:
 
 Copy this configuration in Cursor > MCP Settings.
 
+![LangSmith Cursor Integration](docs/assets/cursor_mcp.png)
+
 ## Available Tools
 
 The server provides the following enterprise-ready tools:
@@ -127,15 +129,26 @@ The server enables conversation history retrieval and prompt management such as:
 - "Pull the template for the 'legal-case-summarizer' prompt"
 - "Get the system message from a specific prompt template"
 
-## Error Handling
+## Contributing
 
-The server implements robust error handling with detailed, actionable error messages for:
+Install all the dependencies (including dev dependencies):
 
-- API authentication issues
-- Invalid thread or project IDs
-- Invalid prompt names
-- Network connectivity failures
-- Rate limiting and quota management
+```bash
+uv sync
+```
+
+Install pre-commit hooks:
+
+```bash
+uv run pre-commit install
+```
+
+Before pushing your changes, run the following commands:
+
+```bash
+make lint
+make format
+```
 
 ## License
 
