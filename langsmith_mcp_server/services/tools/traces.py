@@ -5,6 +5,52 @@ from typing import Any, Dict, List
 from langsmith_mcp_server.common.helpers import get_last_run_stats
 
 
+def fetch_trace_tool(
+    client, project_name: str = None, trace_id: str = None
+) -> Dict[str, Any]:
+    """
+    Fetch the trace content for a specific project or specify a trace ID.
+    If trace_id is specified, project_name is ignored.
+    If trace_id is not specified, the last trace for the project is fetched.
+
+    Args:
+        client: LangSmith client instance
+        project_name: The name of the project to fetch the last trace for
+        trace_id: The ID of the trace to fetch
+
+    Returns:
+        Dictionary containing the last trace and metadata
+    """
+    if not project_name and not trace_id:
+        return {"error": "Error: Either project_name or trace_id must be provided."}
+
+    try:
+        # Get the last run
+        runs = client.list_runs(
+            project_name=project_name if project_name else None,
+            id=[trace_id] if trace_id else None,
+            select=["inputs", "outputs", "run_type", "id"],
+            is_root=True,
+            limit=1,
+        )
+
+        runs = list(runs)
+
+        if runs and len(runs) > 0:
+            # Return the run
+            run = runs[0]
+
+        # Return just the trace ID as we can use this to open the trace view
+        return {
+            "trace_id": run.id,
+            "run_type": run.run_type,
+            "inputs": run.inputs,
+            "outputs": run.outputs,
+        }
+    except Exception as e:
+        return {"error": f"Error fetching last trace: {str(e)}"}
+
+
 def get_thread_history_tool(
     client, thread_id: str, project_name: str
 ) -> List[Dict[str, Any]]:

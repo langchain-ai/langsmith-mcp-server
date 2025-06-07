@@ -7,6 +7,7 @@ from langsmith_mcp_server.services.tools.prompts import (
     list_prompts_tool,
 )
 from langsmith_mcp_server.services.tools.traces import (
+    fetch_trace_tool,
     get_project_runs_stats_tool,
     get_thread_history_tool,
 )
@@ -88,5 +89,25 @@ def register_tools(mcp, langsmith_client):
         try:
             is_last_run_bool = is_last_run.lower() == "true"
             return get_project_runs_stats_tool(client, project_name, is_last_run_bool)
+        except Exception as e:
+            return {"error": str(e)}
+
+    # Register trace tools
+    @mcp.tool()
+    def fetch_trace(project_name: str = None, trace_id: str = None) -> Dict[str, Any]:
+        """
+        Fetch the trace content for a specific project or specify a trace ID.
+        If trace_id is specified, project_name is ignored.
+        If trace_id is not specified, the last trace for the project is fetched.
+
+        Args:
+            project_name: The name of the project to fetch the last trace for
+            trace_id: The ID of the trace to fetch
+
+        Returns:
+            Dictionary containing the last trace and metadata
+        """
+        try:
+            return fetch_trace_tool(client, project_name, trace_id)
         except Exception as e:
             return {"error": str(e)}
