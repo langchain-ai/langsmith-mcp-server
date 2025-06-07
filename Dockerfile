@@ -10,11 +10,11 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY README.md .
 COPY LICENSE .
-COPY src/ src/
+COPY langsmith_mcp_server/ langsmith_mcp_server/
 
 # Upgrade pip and install the package
 RUN pip install --upgrade pip && \
     pip install .
 
 # Expose MCP server via the entrypoint command
-ENTRYPOINT ["langsmith-mcp"]
+ENTRYPOINT ["langsmith-mcp-server"]

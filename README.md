@@ -36,7 +36,7 @@ A production-ready [Model Context Protocol](https://modelcontextprotocol.io/intr
 
 3. For development, run the MCP inspector:
    ```bash
-   uv run mcp dev src/langsmith_mcp_server/server.py
+   uv run mcp dev langsmith_mcp_server/server.py
    ```
    - This will start the MCP inspector on a network port
    - Install any required libraries when prompted
@@ -51,12 +51,12 @@ A production-ready [Model Context Protocol](https://modelcontextprotocol.io/intr
 
 1. Install the MCP server for Claude Desktop:
    ```bash
-   uv run mcp install src/langsmith_mcp_server/server.py
+   uv run mcp install langsmith_mcp_server/server.py
    ```
 
 2. Run the server:
    ```bash
-   uv run mcp run src/langsmith_mcp_server/server.py
+   uv run mcp run langsmith_mcp_server/server.py
    ```
 
 #### Option 2: Using absolute paths (recommended)
@@ -70,7 +70,7 @@ If you encounter any issues with the above method, you can configure the MCP ser
             "command": "/path/to/uv",
             "args": [
                 "--directory",
-                "/path/to/langsmith-mcp-server/src/langsmith_mcp",
+                "/path/to/langsmith-mcp-server/langsmith_mcp_server",
                 "run",
                 "server.py"
             ],
@@ -95,7 +95,7 @@ Example configuration:
             "command": "/Users/mperini/.local/bin/uv",
             "args": [
                 "--directory",
-                "/Users/mperini/Projects/langsmith-mcp-server/src/langsmith_mcp",
+                "/Users/mperini/Projects/langsmith-mcp-server/langsmith_mcp_server",
                 "run",
                 "server.py"
             ],
