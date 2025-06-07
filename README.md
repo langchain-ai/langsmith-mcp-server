@@ -1,5 +1,9 @@
 # LangSmith MCP Server
 
+> [!WARNING]
+> LangSmith MCP Server is under active development and many features are not yet implemented.
+
+
 ![LangSmith MCP Hero](docs/assets/langsmith_mcp_hero.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -110,14 +114,6 @@ Example configuration:
 Copy this configuration in Cursor > MCP Settings.
 
 ![LangSmith Cursor Integration](docs/assets/cursor_mcp.png)
-
-## Available Tools
-
-The server provides the following enterprise-ready tools:
-
-- `get_thread_history(thread_id: str, project_name: str)`: Fetch conversation history for a specific thread
-- `get_prompts(query: Optional[str], is_public: Optional[bool])`: Fetch prompts from LangSmith with optional filtering
-- `pull_prompt(prompt_name: str)`: Pull a specific prompt by its name, including its template and metadata
 
 ## Example Use Cases
 
