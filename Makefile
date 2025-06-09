@@ -1,60 +1,51 @@
-# Makefile for Project Automation
+.PHONY: all lint format test help
 
-.PHONY: install lint type-check test docs serve-docs build all clean
+# Default target executed when no arguments are given to make.
+all: help
 
-# Variables
-PACKAGE_NAME = langsmith_mcp_server
-TEST_DIR = tests
+######################
+# TESTING AND COVERAGE
+######################
 
-# Default target
-all: lint format type-check test docs
+# Define a variable for the test file path.
+TEST_FILE ?= tests/
 
-# Install project dependencies
-install:
-	uv sync
-
-# Linting and Formatting Checks
-lint:
-	uv run ruff check $(PACKAGE_NAME) $(TEST_DIR)
-	uv run black --check $(PACKAGE_NAME) $(TEST_DIR)
-	uv run isort --check-only $(PACKAGE_NAME) $(TEST_DIR)
-
-format:
-	uv run ruff check $(PACKAGE_NAME) $(TEST_DIR) --fix
-	uv run black $(PACKAGE_NAME) $(TEST_DIR)
-	uv run isort $(PACKAGE_NAME) $(TEST_DIR)
-
-# Type Checking with MyPy
-type-check:
-	uv run mypy $(PACKAGE_NAME) $(TEST_DIR)
-
-# Run Tests with Coverage
 test:
-	uv run pytest --cov=$(PACKAGE_NAME) --cov-report=xml $(TEST_DIR)/
+	uv run pytest --disable-socket --allow-unix-socket $(TEST_FILE) --timeout 10
 
-# Build Documentation using MkDocs
-docs:
-	uv run mkdocs build
+test_watch:
+	uv run ptw . -- $(TEST_FILE)
 
-# Serve Documentation Locally
-serve-docs:
-	uv run mkdocs serve
 
-# Run Pre-Commit Hooks
-pre-commit:
-	uv run pre-commit run --all-files
+######################
+# LINTING AND FORMATTING
+######################
 
-# Clean Up Generated Files
-clean:
-	rm -rf dist/
-	rm -rf build/
-	rm -rf *.egg-info
-	rm -rf htmlcov/
-	rm -rf .mypy_cache/
-	rm -rf .pytest_cache/
-	rm -rf .ruff_cache/
-	rm -rf site/
+# Define a variable for Python and notebook files.
+lint format: PYTHON_FILES=langsmith_mcp_server/ tests/
+lint_diff format_diff: PYTHON_FILES=$(shell git diff --relative=. --name-only --diff-filter=d master | grep -E '\.py$$|\.ipynb$$')
 
-# Build the Package
-build:
-	uv build
+lint lint_diff:
+	[ "$(PYTHON_FILES)" = "" ] ||	uv run ruff format $(PYTHON_FILES) --diff
+	[ "$(PYTHON_FILES)" = "" ] ||	uv run ruff check $(PYTHON_FILES) --diff
+	# [ "$(PYTHON_FILES)" = "" ] || uv run mypy $(PYTHON_FILES)
+
+format format_diff:
+	[ "$(PYTHON_FILES)" = "" ] || uv run ruff check --fix $(PYTHON_FILES)
+	[ "$(PYTHON_FILES)" = "" ] || uv run ruff format $(PYTHON_FILES)
+
+
+
+######################
+# HELP
+######################
+
+help:
+	@echo '===================='
+	@echo '-- LINTING --'
+	@echo 'format                       - run code formatters'
+	@echo 'lint                         - run linters'
+	@echo '-- TESTS --'
+	@echo 'test                         - run unit tests'
+	@echo 'test TEST_FILE=<test_file>   - run all tests in file'
+	@echo '-- DOCUMENTATION tasks are from the top-level Makefile --'

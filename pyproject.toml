@@ -1,11 +1,15 @@
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
 [project]
 name = "langsmith-mcp-server"
-version = "1.0.0"
+version = "0.0.1"
 description = "MCP server for Langsmith SDK integration"
-license = {text = "MIT"}
+license = "MIT"
 readme = "README.md"
 authors = [
-    { name = "Marco Perini", email = "marco@langchain.dev" }
+    { name = "Marco Perini", email = "oss@langchain.dev" }
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -13,70 +17,56 @@ dependencies = [
     "langsmith>=0.3.37",
     "langchain-core>=0.3.56"
 ]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
 
 [dependency-groups]
-dev = [
-    "ruff>=0.8.0",
-    "mypy>=1.13.0",
-    "black>=24.10.0",
-    "isort>=5.13.2",
-    "pre-commit>=4.0.1",
-    "pylint>=3.2.5",
-
-    "ipykernel>=6.29.5",
-    "pytest>=7.4.0",
-    "pytest-mock==3.14.0",
-    "pytest-asyncio>=0.23.8",
-    "aioresponses>=0.7.7",
-    "responses>=0.25.3",
-    "pytest-sugar>=1.0.0",
-    "pytest-cov>=6.0.0",
-    "types-setuptools>=75.6.0.20241126",
-    "poethepoet>=0.31.1",
-
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.5.46",
-    "mkdocstrings-python>=1.12.2",
+test = [
+    "pytest>=8.0.0",
+    "ruff>=0.9.4",
+    "mypy>=1.8.0",
+    "pytest-socket>=0.7.0",
+    "pytest-asyncio>=0.26.0",
+    "types-setuptools>=69.0.0",
+    "websockets>=15.0.1",
+    "pytest-timeout>=2.4.0",
+    "pre-commit>=4.2.0",
 ]
+
 [project.urls]
 "Homepage" = "https://github.com/langchain-ai/langsmith-mcp-server"
 "Bug Tracker" = "https://github.com/langchain-ai/langsmith-mcp-server/issues"
 
-[project.scripts]
-langsmith-mcp-server = "langsmith_mcp_server.server:main"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["langsmith_mcp_server"]
-
-[tool.hatch.build]
-only-packages = true
+[tool.pytest.ini_options]
+minversion = "8.0"
+# -ra: Report all extra test outcomes (passed, skipped, failed, etc.)
+# -q: Enable quiet mode for less cluttered output
+# -v: Enable verbose output to display detailed test names and statuses
+# --durations=5: Show the 10 slowest tests after the run (useful for performance tuning)
+addopts = "-ra -q -v --durations=5"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "B", "W"]
-ignore = ["I"]
-
-[tool.isort]
-profile = "black"
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "B", # flake8-bugbear
+]
+ignore = [
+    "E501", # line-length
+]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_incomplete_defs = true
+check_untyped_defs = true
