@@ -2,10 +2,7 @@
 
 from typing import Any, Dict, List
 
-from langsmith_mcp_server.services.tools.prompts import (
-    get_prompt_tool,
-    list_prompts_tool,
-)
+from langsmith_mcp_server.services.tools.prompts import get_prompt_tool, list_prompts_tool
 from langsmith_mcp_server.services.tools.traces import (
     fetch_trace_tool,
     get_project_runs_stats_tool,
@@ -75,9 +72,7 @@ def register_tools(mcp, langsmith_client):
 
     # Register analytics tools
     @mcp.tool()
-    def get_project_runs_stats(
-        project_name: str, is_last_run: str = "true"
-    ) -> Dict[str, Any]:
+    def get_project_runs_stats(project_name: str, is_last_run: str = "true") -> Dict[str, Any]:
         """
         Get the project runs stats
         Args:

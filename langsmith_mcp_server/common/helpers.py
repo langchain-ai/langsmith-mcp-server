@@ -18,9 +18,7 @@ def get_langgraph_app_host_name(run_stats: dict) -> Optional[str]:
         for run_facet in run_stats["run_facets"]:
             try:
                 for rfk in run_facet.keys():
-                    langgraph_host = re.search(
-                        r"http[s]?:\/\/(?P<langgraph_host>[^\/]+)", rfk
-                    )
+                    langgraph_host = re.search(r"http[s]?:\/\/(?P<langgraph_host>[^\/]+)", rfk)
                     if langgraph_host:
                         return langgraph_host.group("langgraph_host")
             except re.error:

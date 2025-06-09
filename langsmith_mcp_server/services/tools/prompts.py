@@ -3,9 +3,7 @@
 from typing import Any, Dict
 
 
-def list_prompts_tool(
-    client, is_public: bool = False, limit: int = 20
-) -> Dict[str, Any]:
+def list_prompts_tool(client, is_public: bool = False, limit: int = 20) -> Dict[str, Any]:
     """
     Fetch prompts from LangSmith with optional filtering.
 

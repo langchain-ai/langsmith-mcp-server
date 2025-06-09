@@ -5,9 +5,7 @@ from typing import Any, Dict, List
 from langsmith_mcp_server.common.helpers import get_last_run_stats
 
 
-def fetch_trace_tool(
-    client, project_name: str = None, trace_id: str = None
-) -> Dict[str, Any]:
+def fetch_trace_tool(client, project_name: str = None, trace_id: str = None) -> Dict[str, Any]:
     """
     Fetch the trace content for a specific project or specify a trace ID.
     If trace_id is specified, project_name is ignored.
@@ -51,9 +49,7 @@ def fetch_trace_tool(
         return {"error": f"Error fetching last trace: {str(e)}"}
 
 
-def get_thread_history_tool(
-    client, thread_id: str, project_name: str
-) -> List[Dict[str, Any]]:
+def get_thread_history_tool(client, thread_id: str, project_name: str) -> List[Dict[str, Any]]:
     """
     Get the history for a specific thread.
 
@@ -81,11 +77,7 @@ def get_thread_history_tool(
         ]
 
         if not runs:
-            return [
-                {
-                    "error": f"No runs found for thread {thread_id} in project {project_name}"
-                }
-            ]
+            return [{"error": f"No runs found for thread {thread_id} in project {project_name}"}]
 
         # Sort by start time to get the most recent interaction
         runs = sorted(runs, key=lambda run: run.start_time, reverse=True)
@@ -109,9 +101,7 @@ def get_thread_history_tool(
                 ):
                     if "message" in latest_run.outputs["choices"][0]:
                         messages.append(latest_run.outputs["choices"][0]["message"])
-            elif (
-                isinstance(latest_run.outputs, dict) and "message" in latest_run.outputs
-            ):
+            elif isinstance(latest_run.outputs, dict) and "message" in latest_run.outputs:
                 messages.append(latest_run.outputs["message"])
 
         if not messages:
