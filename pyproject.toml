@@ -18,6 +18,9 @@ dependencies = [
     "langchain-core>=0.3.56"
 ]
 
+[project.scripts]
+langsmith-mcp-server = "langsmith_mcp_server.server:main"
+
 [dependency-groups]
 test = [
     "pytest>=8.0.0",
