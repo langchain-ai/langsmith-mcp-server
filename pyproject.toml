@@ -4,7 +4,7 @@ build-backend = "pdm.backend"
 
 [project]
 name = "langsmith-mcp-server"
-version = "0.0.1"
+version = "0.0.2"
 description = "MCP server for Langsmith SDK integration"
 license = "MIT"
 readme = "README.md"
