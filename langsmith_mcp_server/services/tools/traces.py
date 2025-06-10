@@ -8,17 +8,24 @@ from langsmith_mcp_server.common.helpers import get_last_run_stats
 def fetch_trace_tool(client, project_name: str = None, trace_id: str = None) -> Dict[str, Any]:
     """
     Fetch the trace content for a specific project or specify a trace ID.
-    If trace_id is specified, project_name is ignored.
-    If trace_id is not specified, the last trace for the project is fetched.
+
+    Note: Only one of the parameters (project_name or trace_id) is required.
+    trace_id is preferred if both are provided.
 
     Args:
         client: LangSmith client instance
         project_name: The name of the project to fetch the last trace for
-        trace_id: The ID of the trace to fetch
+        trace_id: The ID of the trace to fetch (preferred parameter)
 
     Returns:
         Dictionary containing the last trace and metadata
     """
+    # Handle None values and "null" string inputs
+    if project_name == "null":
+        project_name = None
+    if trace_id == "null":
+        trace_id = None
+
     if not project_name and not trace_id:
         return {"error": "Error: Either project_name or trace_id must be provided."}
 
@@ -34,9 +41,10 @@ def fetch_trace_tool(client, project_name: str = None, trace_id: str = None) -> 
 
         runs = list(runs)
 
-        if runs and len(runs) > 0:
-            # Return the run
-            run = runs[0]
+        if not runs or len(runs) == 0:
+            return {"error": "No runs found for project_name: {}".format(project_name)}
+
+        run = runs[0]
 
         # Return just the trace ID as we can use this to open the trace view
         return {
@@ -76,7 +84,7 @@ def get_thread_history_tool(client, thread_id: str, project_name: str) -> List[D
             )
         ]
 
-        if not runs:
+        if not runs or len(runs) == 0:
             return [{"error": f"No runs found for thread {thread_id} in project {project_name}"}]
 
         # Sort by start time to get the most recent interaction
@@ -104,7 +112,7 @@ def get_thread_history_tool(client, thread_id: str, project_name: str) -> List[D
             elif isinstance(latest_run.outputs, dict) and "message" in latest_run.outputs:
                 messages.append(latest_run.outputs["message"])
 
-        if not messages:
+        if not messages or len(messages) == 0:
             return [{"error": f"No messages found in the run for thread {thread_id}"}]
 
         return messages

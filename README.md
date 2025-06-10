@@ -1,19 +1,23 @@
-# LangSmith MCP Server
+# 🦜🛠️ LangSmith MCP Server
 
 > [!WARNING]
 > LangSmith MCP Server is under active development and many features are not yet implemented.
 
 
-![LangSmith MCP Hero](docs/assets/langsmith_mcp_hero.png)
+![LangSmith MCP Hero](https://raw.githubusercontent.com/langchain-ai/langsmith-mcp-server/refs/heads/main/docs/assets/langsmith_mcp_hero.png)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 
 A production-ready [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) server that provides seamless integration with the [LangSmith](https://smith.langchain.com) observability platform. This server enables language models to fetch conversation history and prompts from LangSmith.
 
-## Installation and Testing
+## 📋 Overview
 
-### Prerequisites
+The LangSmith MCP Server bridges the gap between language models and the LangSmith platform, enabling advanced capabilities for conversation tracking, prompt management, and analytics integration.
+
+## 🛠️ Installation Options
+
+### 📝 General Prerequisites
 
 1. Install [uv](https://github.com/astral-sh/uv) (a fast Python package installer and resolver):
    ```bash
@@ -23,55 +27,46 @@ A production-ready [Model Context Protocol](https://modelcontextprotocol.io/intr
 2. Clone this repository and navigate to the project directory:
    ```bash
    git clone https://github.com/langchain-ai/langsmith-mcp-server.git
-   cd langsmith-mcp
+   cd langsmith-mcp-server
    ```
 
-### Development Setup
+### 🔌 MCP Client Integration
 
-1. Create a virtual environment and install dependencies:
+Once you have the LangSmith MCP Server, you can integrate it with various MCP-compatible clients. You have two installation options:
+
+#### 📦 From PyPI
+
+1. Install the package:
    ```bash
-   uv sync
+   uv run pip install --upgrade langsmith-mcp-server
    ```
 
-2. View available MCP commands:
-   ```bash
-   uv run mcp
+2. Add to your client MCP config:
+   ```json
+   {
+       "mcpServers": {
+           "LangSmith API MCP Server": {
+               "command": "/path/to/uvx",
+               "args": [
+                   "langsmith-mcp-server"
+               ],
+               "env": {
+                   "LANGSMITH_API_KEY": "your_langsmith_api_key"
+               }
+           }
+       }
+   }
    ```
 
-3. For development, run the MCP inspector:
-   ```bash
-   uv run mcp dev langsmith_mcp_server/server.py
-   ```
-   - This will start the MCP inspector on a network port
-   - Install any required libraries when prompted
-   - The MCP inspector will be available in your browser
-   - Set the `LANGSMITH_API_KEY` environment variable in the inspector
-   - Connect to the server
-   - Navigate to the "Tools" tab to see all available tools
+#### ⚙️ From Source
 
-### MCP Client Setup
-
-#### Option 1: Using uv commands
-
-1. Install the MCP server for Claude Desktop:
-   ```bash
-   uv run mcp install langsmith_mcp_server/server.py
-   ```
-
-2. Run the server:
-   ```bash
-   uv run mcp run langsmith_mcp_server/server.py
-   ```
-
-#### Option 2: Using absolute paths (recommended)
-
-If you encounter any issues with the above method, you can configure the MCP server using absolute paths. Add the following configuration to your Claude Desktop settings:
+Add the following configuration to your MCP client settings:
 
 ```json
 {
     "mcpServers": {
         "LangSmith API MCP Server": {
-            "command": "/path/to/uv",
+            "command": "/path/to/uvx",
             "args": [
                 "--directory",
                 "/path/to/langsmith-mcp-server/langsmith_mcp_server",
@@ -96,12 +91,9 @@ Example configuration:
 {
     "mcpServers": {
         "LangSmith API MCP Server": {
-            "command": "/Users/mperini/.local/bin/uv",
+            "command": "/Users/mperini/.local/bin/uvx",
             "args": [
-                "--directory",
-                "/Users/mperini/Projects/langsmith-mcp-server/langsmith_mcp_server",
-                "run",
-                "server.py"
+                "langsmith-mcp-server"
             ],
             "env": {
                 "LANGSMITH_API_KEY": "lsv2_pt_1234"
@@ -115,40 +107,55 @@ Copy this configuration in Cursor > MCP Settings.
 
 ![LangSmith Cursor Integration](docs/assets/cursor_mcp.png)
 
-## Example Use Cases
+## 🧪 Development and Contributing 🤝
 
-The server enables conversation history retrieval and prompt management such as:
+If you want to develop or contribute to the LangSmith MCP Server, follow these steps:
 
-- "Fetch the history of my conversation with the AI assistant from thread 'thread-123' in project 'my-chatbot'"
-- "Get all public prompts in my workspace"
-- "Find private prompts containing the word 'joke'"
-- "Pull the template for the 'legal-case-summarizer' prompt"
-- "Get the system message from a specific prompt template"
+1. Create a virtual environment and install dependencies:
+   ```bash
+   uv sync
+   ```
 
-## Contributing
+2. To include test dependencies:
+   ```bash
+   uv sync --group test
+   ```
 
-Install all the dependencies (including dev dependencies):
+3. View available MCP commands:
+   ```bash
+   uvx langsmith-mcp-server
+   ```
 
-```bash
-uv sync
-```
+4. For development, run the MCP inspector:
+   ```bash
+   uv run mcp dev langsmith_mcp_server/server.py
+   ```
+   - This will start the MCP inspector on a network port
+   - Install any required libraries when prompted
+   - The MCP inspector will be available in your browser
+   - Set the `LANGSMITH_API_KEY` environment variable in the inspector
+   - Connect to the server
+   - Navigate to the "Tools" tab to see all available tools
 
-Install pre-commit hooks:
+5. Before submitting your changes, run the linting and formatting checks:
+   ```bash
+   make lint
+   make format
+   ```
 
-```bash
-uv run pre-commit install
-```
+## 🚀 Example Use Cases
 
-Before pushing your changes, run the following commands:
+The server enables powerful capabilities including:
 
-```bash
-make lint
-make format
-```
+- 💬 **Conversation History**: "Fetch the history of my conversation with the AI assistant from thread 'thread-123' in project 'my-chatbot'"
+- 📚 **Prompt Management**: "Get all public prompts in my workspace"
+- 🔍 **Smart Search**: "Find private prompts containing the word 'joke'"
+- 📝 **Template Access**: "Pull the template for the 'legal-case-summarizer' prompt"
+- 🔧 **Configuration**: "Get the system message from a specific prompt template"
 
-## License
+## 📄 License
 
 This project is distributed under the MIT License. For detailed terms and conditions, please refer to the LICENSE file.
 
 
-Made with ❤️ by [LangChain](https://langchain.com) Team
+Made with ❤️ by the [LangChain](https://langchain.com) Team

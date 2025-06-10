@@ -11,7 +11,15 @@ from langsmith_mcp_server.services.tools.traces import (
 
 
 def register_tools(mcp, langsmith_client):
-    """Register all tool-related functionality with the MCP server."""
+    """
+    Register all LangSmith tool-related functionality with the MCP server.
+    This function configures and registers various tools for interacting with LangSmith,
+    including prompt management, conversation history, traces, and analytics.
+
+    Args:
+        mcp: The MCP server instance to register tools with
+        langsmith_client: The LangSmith client instance for API access
+    """
 
     # Skip registration if client is not initialized
     if langsmith_client is None:
@@ -25,10 +33,12 @@ def register_tools(mcp, langsmith_client):
         Fetch prompts from LangSmith with optional filtering.
 
         Args:
-            is_public (str): Optional string ("true" or "false") to filter public/private prompts
-            limit (int): Optional limit to the number of prompts to return
+            is_public (str): Filter by prompt visibility - "true" for public prompts,
+                            "false" for private prompts (default: "false")
+            limit (int): Maximum number of prompts to return (default: 20)
+
         Returns:
-            Dictionary containing the prompts and metadata
+            Dict[str, Any]: Dictionary containing the prompts and metadata
         """
         try:
             is_public_bool = is_public.lower() == "true"
@@ -39,13 +49,14 @@ def register_tools(mcp, langsmith_client):
     @mcp.tool()
     def get_prompt_by_name(prompt_name: str) -> Dict[str, Any]:
         """
-        Get a specific prompt by its name.
+        Get a specific prompt by its exact name.
 
         Args:
-            prompt_name: The name of the prompt to get
+            prompt_name (str): The exact name of the prompt to retrieve
 
         Returns:
-            Dictionary containing the prompt details and template
+            Dict[str, Any]: Dictionary containing the prompt details and template,
+                          or an error message if the prompt cannot be found
         """
         try:
             return get_prompt_tool(client, prompt_name=prompt_name)
@@ -56,14 +67,16 @@ def register_tools(mcp, langsmith_client):
     @mcp.tool()
     def get_thread_history(thread_id: str, project_name: str) -> List[Dict[str, Any]]:
         """
-        Get the history for a specific thread.
+        Retrieve the message history for a specific conversation thread.
 
         Args:
-            thread_id: The ID of the thread to fetch history for
-            project_name: The name of the project containing the thread
+            thread_id (str): The unique ID of the thread to fetch history for
+            project_name (str): The name of the project containing the thread
+                               (format: "owner/project" or just "project")
 
         Returns:
-            List of messages in the thread history
+            List[Dict[str, Any]]: List of messages in chronological order from the thread history,
+                                or an error message if the thread cannot be found
         """
         try:
             return get_thread_history_tool(client, thread_id, project_name)
@@ -74,12 +87,17 @@ def register_tools(mcp, langsmith_client):
     @mcp.tool()
     def get_project_runs_stats(project_name: str, is_last_run: str = "true") -> Dict[str, Any]:
         """
-        Get the project runs stats
+        Get statistics about runs in a LangSmith project.
+
         Args:
-            project_name (str): The name of the project
-            is_last_run (str): "true" to get last run stats, "false" for overall project stats
+            project_name (str): The name of the project to analyze
+                              (format: "owner/project" or just "project")
+            is_last_run (str): Set to "true" to get only the last run's stats,
+                             set to "false" for overall project stats (default: "true")
+
         Returns:
-            dict | None: The project runs stats
+            Dict[str, Any]: Dictionary containing the requested project run statistics
+                          or an error message if statistics cannot be retrieved
         """
         try:
             is_last_run_bool = is_last_run.lower() == "true"
@@ -91,16 +109,19 @@ def register_tools(mcp, langsmith_client):
     @mcp.tool()
     def fetch_trace(project_name: str = None, trace_id: str = None) -> Dict[str, Any]:
         """
-        Fetch the trace content for a specific project or specify a trace ID.
-        If trace_id is specified, project_name is ignored.
-        If trace_id is not specified, the last trace for the project is fetched.
+        Fetch trace content for debugging and analyzing LangSmith runs.
+
+        Note: Only one parameter (project_name or trace_id) is required.
+        If both are provided, trace_id is preferred.
+        String "null" inputs are handled as None values.
 
         Args:
-            project_name: The name of the project to fetch the last trace for
-            trace_id: The ID of the trace to fetch
+            project_name (str, optional): The name of the project to fetch the latest trace from
+            trace_id (str, optional): The specific ID of the trace to fetch (preferred parameter)
 
         Returns:
-            Dictionary containing the last trace and metadata
+            Dict[str, Any]: Dictionary containing the trace data and metadata,
+                          or an error message if the trace cannot be found
         """
         try:
             return fetch_trace_tool(client, project_name, trace_id)
