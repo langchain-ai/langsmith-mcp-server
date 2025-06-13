@@ -50,11 +50,15 @@ def list_datasets_tool(
         attrs = [
             "id",
             "name",
+            "inputs_schema_definition",
+            "outputs_schema_definition",
             "description",
             "data_type",
+            "example_count",
+            "session_count",
             "created_at",
-            "updated_at",
-            "metadata",
+            "modified_at",
+            "last_session_start_time",
         ]
 
         formatted_datasets = []

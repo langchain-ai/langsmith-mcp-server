@@ -89,7 +89,9 @@ def register_tools(mcp, langsmith_client):
 
     # Register analytics tools
     @mcp.tool()
-    def get_project_runs_stats(project_name: str, is_last_run: str = "true") -> Dict[str, Any]:
+    def get_project_runs_stats(
+        project_name: str, is_last_run: str = "true"
+    ) -> Dict[str, Any]:
         """
         Get statistics about runs in a LangSmith project.
 
@@ -140,9 +142,24 @@ def register_tools(mcp, langsmith_client):
         dataset_name: Optional[str] = None,
         dataset_name_contains: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        limit: int = 20,
     ) -> Dict[str, Any]:
         """
-        List datasets in a LangSmith project.
+        Fetch LangSmith datasets.
+
+        Note: If no arguments are provided, all datasets will be returned.
+
+        Args:
+            dataset_ids (Optional[List[str]]): List of dataset IDs to filter by
+            data_type (Optional[str]): Filter by dataset data type (e.g., 'chat', 'kv')
+            dataset_name (Optional[str]): Filter by exact dataset name
+            dataset_name_contains (Optional[str]): Filter by substring in dataset name
+            metadata (Optional[Dict[str, Any]]): Filter by metadata dict
+            limit (int): Max number of datasets to return (default: 20)
+
+        Returns:
+            Dict[str, Any]: Dictionary containing the datasets and metadata,
+                            or an error message if the datasets cannot be retrieved
         """
         try:
             return list_datasets_tool(
@@ -152,7 +169,7 @@ def register_tools(mcp, langsmith_client):
                 dataset_name=dataset_name,
                 dataset_name_contains=dataset_name_contains,
                 metadata=metadata,
-                limit=20,
+                limit=limit,
             )
         except Exception as e:
             return {"error": str(e)}
