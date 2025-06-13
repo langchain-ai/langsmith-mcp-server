@@ -89,9 +89,7 @@ def register_tools(mcp, langsmith_client):
 
     # Register analytics tools
     @mcp.tool()
-    def get_project_runs_stats(
-        project_name: str, is_last_run: str = "true"
-    ) -> Dict[str, Any]:
+    def get_project_runs_stats(project_name: str, is_last_run: str = "true") -> Dict[str, Any]:
         """
         Get statistics about runs in a LangSmith project.
 
