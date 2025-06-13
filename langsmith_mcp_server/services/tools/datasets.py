@@ -67,7 +67,7 @@ def list_datasets_tool(
             for attr in attrs:
                 value = getattr(dataset, attr, None)
                 # Format datetimes as isoformat
-                if attr in ("created_at", "updated_at") and value is not None:
+                if attr in ("created_at", "modified_at") and value is not None:
                     value = value.isoformat()
                 dataset_dict[attr] = value
             formatted_datasets.append(dataset_dict)

@@ -19,16 +19,14 @@ class MockDataset:
         description: str = None,
         data_type: str = "kv",
         created_at: datetime = None,
-        updated_at: datetime = None,
-        metadata: Dict[str, Any] = None,
+        modified_at: datetime = None,
     ):
         self.id = id
         self.name = name
         self.description = description
         self.data_type = data_type
         self.created_at = created_at or datetime(2024, 1, 1, 12, 0, 0)
-        self.updated_at = updated_at or datetime(2024, 1, 2, 12, 0, 0)
-        self.metadata = metadata or {}
+        self.modified_at = modified_at or datetime(2024, 1, 2, 12, 0, 0)
 
 
 @pytest.fixture
@@ -47,21 +45,18 @@ def sample_datasets():
             name="Test Dataset 1",
             description="First test dataset",
             data_type="kv",
-            metadata={"version": "1.0", "tags": ["test"]},
         ),
         MockDataset(
             id="dataset-2",
             name="Chat Dataset",
             description="Dataset for chat conversations",
             data_type="chat",
-            metadata={"version": "2.0", "tags": ["chat", "production"]},
         ),
         MockDataset(
             id="dataset-3",
             name="Empty Dataset",
             description=None,
             data_type="kv",
-            metadata={},
         ),
     ]
 
@@ -88,8 +83,7 @@ class TestListDatasetsTool:
             "description",
             "data_type",
             "created_at",
-            "updated_at",
-            "metadata",
+            "modified_at",
         ]
         for attr in expected_attrs:
             assert attr in first_dataset
@@ -99,7 +93,7 @@ class TestListDatasetsTool:
         assert first_dataset["name"] == "Test Dataset 1"
         assert first_dataset["data_type"] == "kv"
         assert first_dataset["created_at"] == "2024-01-01T12:00:00"
-        assert first_dataset["updated_at"] == "2024-01-02T12:00:00"
+        assert first_dataset["modified_at"] == "2024-01-02T12:00:00"
 
         # Verify client was called with no filters
         mock_client.list_datasets.assert_called_once_with(limit=20)
@@ -115,7 +109,9 @@ class TestListDatasetsTool:
         assert result["total_count"] == 1
         assert result["datasets"][0]["id"] == "dataset-1"
 
-        mock_client.list_datasets.assert_called_once_with(dataset_ids=dataset_ids, limit=20)
+        mock_client.list_datasets.assert_called_once_with(
+            dataset_ids=dataset_ids, limit=20
+        )
 
     def test_list_datasets_with_data_type_filter(self, mock_client, sample_datasets):
         """Test dataset listing with data_type filter."""
@@ -139,9 +135,13 @@ class TestListDatasetsTool:
         assert result["total_count"] == 1
         assert result["datasets"][0]["name"] == "Test Dataset 1"
 
-        mock_client.list_datasets.assert_called_once_with(dataset_name="Test Dataset 1", limit=20)
+        mock_client.list_datasets.assert_called_once_with(
+            dataset_name="Test Dataset 1", limit=20
+        )
 
-    def test_list_datasets_with_name_contains_filter(self, mock_client, sample_datasets):
+    def test_list_datasets_with_name_contains_filter(
+        self, mock_client, sample_datasets
+    ):
         """Test dataset listing with dataset_name_contains filter."""
         filtered_datasets = [sample_datasets[1]]
         mock_client.list_datasets.return_value = iter(filtered_datasets)
@@ -151,7 +151,9 @@ class TestListDatasetsTool:
         assert result["total_count"] == 1
         assert result["datasets"][0]["name"] == "Chat Dataset"
 
-        mock_client.list_datasets.assert_called_once_with(dataset_name_contains="Chat", limit=20)
+        mock_client.list_datasets.assert_called_once_with(
+            dataset_name_contains="Chat", limit=20
+        )
 
     def test_list_datasets_with_metadata_filter(self, mock_client, sample_datasets):
         """Test dataset listing with metadata filter."""
@@ -162,9 +164,12 @@ class TestListDatasetsTool:
         result = list_datasets_tool(mock_client, metadata=metadata_filter)
 
         assert result["total_count"] == 1
-        assert result["datasets"][0]["metadata"]["version"] == "1.0"
+        # Note: metadata is not returned in the output, it's only used for filtering
+        assert result["datasets"][0]["id"] == "dataset-1"
 
-        mock_client.list_datasets.assert_called_once_with(metadata=metadata_filter, limit=20)
+        mock_client.list_datasets.assert_called_once_with(
+            metadata=metadata_filter, limit=20
+        )
 
     def test_list_datasets_with_custom_limit(self, mock_client, sample_datasets):
         """Test dataset listing with custom limit."""
@@ -242,8 +247,7 @@ class TestListDatasetsTool:
                 "description": None,
                 "data_type": None,
                 "created_at": None,
-                "updated_at": None,
-                "metadata": None,
+                "modified_at": None,
             }
         )
 
@@ -267,60 +271,3 @@ class TestListDatasetsTool:
 
         assert "error" in result
         assert "Error fetching datasets: API Error" in result["error"]
-
-    def test_list_datasets_datetime_formatting(self, mock_client):
-        """Test that datetime objects are properly formatted as ISO strings."""
-        dataset_with_datetime = MockDataset(
-            id="datetime-test",
-            name="DateTime Test",
-            created_at=datetime(2024, 3, 15, 14, 30, 45),
-            updated_at=datetime(2024, 3, 16, 16, 45, 30),
-        )
-
-        mock_client.list_datasets.return_value = iter([dataset_with_datetime])
-
-        result = list_datasets_tool(mock_client)
-
-        dataset = result["datasets"][0]
-        assert dataset["created_at"] == "2024-03-15T14:30:45"
-        assert dataset["updated_at"] == "2024-03-16T16:45:30"
-
-    def test_list_datasets_none_datetime_handling(self, mock_client):
-        """Test handling of None datetime values."""
-        dataset_with_none_dates = Mock()
-        dataset_with_none_dates.id = "none-dates"
-        dataset_with_none_dates.name = "None Dates"
-        dataset_with_none_dates.created_at = None
-        dataset_with_none_dates.updated_at = None
-
-        mock_client.list_datasets.return_value = iter([dataset_with_none_dates])
-
-        result = list_datasets_tool(mock_client)
-
-        dataset = result["datasets"][0]
-        assert dataset["created_at"] is None
-        assert dataset["updated_at"] is None
-
-    def test_list_datasets_complex_metadata(self, mock_client):
-        """Test handling of complex metadata structures."""
-        complex_metadata = {
-            "version": "2.1.0",
-            "tags": ["production", "ml", "training"],
-            "config": {"batch_size": 32, "learning_rate": 0.001},
-            "metrics": {"accuracy": 0.95, "f1_score": 0.92},
-        }
-
-        dataset_with_complex_metadata = MockDataset(
-            id="complex-metadata",
-            name="Complex Metadata Dataset",
-            metadata=complex_metadata,
-        )
-
-        mock_client.list_datasets.return_value = iter([dataset_with_complex_metadata])
-
-        result = list_datasets_tool(mock_client)
-
-        dataset = result["datasets"][0]
-        assert dataset["metadata"] == complex_metadata
-        assert dataset["metadata"]["config"]["batch_size"] == 32
-        assert dataset["metadata"]["metrics"]["accuracy"] == 0.95
