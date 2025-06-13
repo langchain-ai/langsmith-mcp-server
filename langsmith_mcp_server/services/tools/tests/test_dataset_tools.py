@@ -1,7 +1,6 @@
 """Tests for dataset tools."""
 
 from datetime import datetime
-from typing import Any, Dict
 from unittest.mock import Mock
 
 import pytest
@@ -109,9 +108,7 @@ class TestListDatasetsTool:
         assert result["total_count"] == 1
         assert result["datasets"][0]["id"] == "dataset-1"
 
-        mock_client.list_datasets.assert_called_once_with(
-            dataset_ids=dataset_ids, limit=20
-        )
+        mock_client.list_datasets.assert_called_once_with(dataset_ids=dataset_ids, limit=20)
 
     def test_list_datasets_with_data_type_filter(self, mock_client, sample_datasets):
         """Test dataset listing with data_type filter."""
@@ -135,13 +132,9 @@ class TestListDatasetsTool:
         assert result["total_count"] == 1
         assert result["datasets"][0]["name"] == "Test Dataset 1"
 
-        mock_client.list_datasets.assert_called_once_with(
-            dataset_name="Test Dataset 1", limit=20
-        )
+        mock_client.list_datasets.assert_called_once_with(dataset_name="Test Dataset 1", limit=20)
 
-    def test_list_datasets_with_name_contains_filter(
-        self, mock_client, sample_datasets
-    ):
+    def test_list_datasets_with_name_contains_filter(self, mock_client, sample_datasets):
         """Test dataset listing with dataset_name_contains filter."""
         filtered_datasets = [sample_datasets[1]]
         mock_client.list_datasets.return_value = iter(filtered_datasets)
@@ -151,9 +144,7 @@ class TestListDatasetsTool:
         assert result["total_count"] == 1
         assert result["datasets"][0]["name"] == "Chat Dataset"
 
-        mock_client.list_datasets.assert_called_once_with(
-            dataset_name_contains="Chat", limit=20
-        )
+        mock_client.list_datasets.assert_called_once_with(dataset_name_contains="Chat", limit=20)
 
     def test_list_datasets_with_metadata_filter(self, mock_client, sample_datasets):
         """Test dataset listing with metadata filter."""
@@ -167,9 +158,7 @@ class TestListDatasetsTool:
         # Note: metadata is not returned in the output, it's only used for filtering
         assert result["datasets"][0]["id"] == "dataset-1"
 
-        mock_client.list_datasets.assert_called_once_with(
-            metadata=metadata_filter, limit=20
-        )
+        mock_client.list_datasets.assert_called_once_with(metadata=metadata_filter, limit=20)
 
     def test_list_datasets_with_custom_limit(self, mock_client, sample_datasets):
         """Test dataset listing with custom limit."""
