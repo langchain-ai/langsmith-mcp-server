@@ -1,8 +1,12 @@
 """Registration module for LangSmith MCP tools."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from langsmith_mcp_server.services.tools.prompts import get_prompt_tool, list_prompts_tool
+from langsmith_mcp_server.services.tools.datasets import list_datasets_tool
+from langsmith_mcp_server.services.tools.prompts import (
+    get_prompt_tool,
+    list_prompts_tool,
+)
 from langsmith_mcp_server.services.tools.traces import (
     fetch_trace_tool,
     get_project_runs_stats_tool,
@@ -125,5 +129,45 @@ def register_tools(mcp, langsmith_client):
         """
         try:
             return fetch_trace_tool(client, project_name, trace_id)
+        except Exception as e:
+            return {"error": str(e)}
+
+    # Register dataset tools
+    @mcp.tool()
+    def list_datasets(
+        dataset_ids: Optional[List[str]] = None,
+        data_type: Optional[str] = None,
+        dataset_name: Optional[str] = None,
+        dataset_name_contains: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        """
+        Fetch LangSmith datasets.
+
+        Note: If no arguments are provided, all datasets will be returned.
+
+        Args:
+            dataset_ids (Optional[List[str]]): List of dataset IDs to filter by
+            data_type (Optional[str]): Filter by dataset data type (e.g., 'chat', 'kv')
+            dataset_name (Optional[str]): Filter by exact dataset name
+            dataset_name_contains (Optional[str]): Filter by substring in dataset name
+            metadata (Optional[Dict[str, Any]]): Filter by metadata dict
+            limit (int): Max number of datasets to return (default: 20)
+
+        Returns:
+            Dict[str, Any]: Dictionary containing the datasets and metadata,
+                            or an error message if the datasets cannot be retrieved
+        """
+        try:
+            return list_datasets_tool(
+                client,
+                dataset_ids=dataset_ids,
+                data_type=data_type,
+                dataset_name=dataset_name,
+                dataset_name_contains=dataset_name_contains,
+                metadata=metadata,
+                limit=limit,
+            )
         except Exception as e:
             return {"error": str(e)}
