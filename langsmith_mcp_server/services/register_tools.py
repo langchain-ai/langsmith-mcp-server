@@ -16,6 +16,8 @@ from langsmith_mcp_server.services.tools.traces import (
     fetch_trace_tool,
     get_project_runs_stats_tool,
     get_thread_history_tool,
+    list_runs_for_trace_tool,
+    get_run_tool,
 )
 
 
@@ -134,6 +136,79 @@ def register_tools(mcp, langsmith_client):
         """
         try:
             return fetch_trace_tool(client, project_name, trace_id)
+        except Exception as e:
+            return {"error": str(e)}
+
+    @mcp.tool(name="list runs for trace")
+    def list_runs_for_trace(
+        project_name: str = None,
+        project_id: str = None,
+        trace_id: str = None,
+        run_count: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        List runs for a specific trace and return minimal metadata.
+
+        Usage pattern (important):
+        1) Call this once to enumerate run IDs for a trace.
+        2) Then call "get run" for each run_id you want full details for.
+        3) Avoid re-calling this repeatedly; caching the IDs is recommended.
+
+        Args:
+            project_name (str): Optional project name to further scope the search.
+            project_id (str): Optional project UUID to further scope the search.
+            trace_id (str): Trace/run UUID to list runs for (required).
+            run_count (Optional[int]): Max number of runs to return. If omitted, all
+                available runs are returned. If set to 0, an empty result is returned.
+
+        Returns:
+            Dict[str, Any]:
+                {
+                    "trace_id": str,
+                    "total_count": int,
+                    "runs": [
+                        {"id": str, "name": Optional[str], "run_type": Optional[str], "parent_run_id": str}
+                    ]
+                }
+
+            On error, returns {"error": <message>}.
+        """
+        try:
+            return list_runs_for_trace_tool(
+                client,
+                project_name=project_name,
+                project_id=project_id,
+                trace_id=trace_id,
+                run_count=run_count,
+            )
+        except Exception as e:
+            return {"error": str(e)}
+
+    # New: get a single run by id
+    @mcp.tool(name="get run")
+    def get_run(run_id: str) -> Dict[str, Any]:
+        """
+        Fetch full details for a single run by UUID and return a JSON-serializable payload.
+
+        Recommended flow:
+        - First call "list runs for trace" to enumerate run IDs for a trace.
+        - Then call this tool for each run you want to inspect.
+        - Use this instead of re-calling "list runs for trace" multiple times.
+
+        Args:
+            run_id (str): The run UUID to retrieve (required).
+
+        Returns:
+            Dict[str, Any]: { "run": { ...fields... } } where the run contains:
+            "id", "name", "run_type", "trace_id", "parent_run_id", "inputs",
+            "outputs", "error", "start_time", "end_time", "extra", "metadata",
+            "events", "feedback_stats", "total_tokens", "prompt_tokens",
+            "completion_tokens".
+
+            On error, returns {"error": <message>}.
+        """
+        try:
+            return get_run_tool(client, run_id=run_id)
         except Exception as e:
             return {"error": str(e)}
 

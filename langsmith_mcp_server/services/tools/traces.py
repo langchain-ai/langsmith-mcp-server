@@ -1,6 +1,6 @@
 """Tools for interacting with LangSmith traces and conversations."""
 
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from langsmith_mcp_server.common.helpers import get_last_run_stats
 
@@ -153,3 +153,173 @@ def get_project_runs_stats_tool(
         return project_runs_stats
     except Exception as e:
         return {"error": f"Error getting project runs stats: {str(e)}"}
+
+def list_runs_for_trace_tool(
+    client,
+    project_name: Optional[str] = None,
+    project_id: Optional[str] = None,
+    trace_id: Optional[str] = None,
+    run_count: Optional[float] = None,
+) -> Dict[str, Any]:
+    """
+    List the runs that belong to a specific trace and return minimal metadata.
+
+    This utility is intended to be called first in a trace inspection flow to
+    enumerate run IDs associated with a trace. You can then fetch full details
+    for specific runs using `get_run_tool`.
+
+    Args:
+        client: LangSmith client instance.
+        project_name: Optional project name to further scope the search.
+        project_id: Optional project UUID to further scope the search.
+        trace_id: The trace/run UUID to list runs for (required).
+        run_count: Maximum number of runs to return. If omitted (None), all
+            available runs are returned. If set to 0, an empty result is returned.
+
+    Returns:
+        Dict[str, Any]: A dictionary with the following keys:
+            - "trace_id": The trace UUID provided.
+            - "total_count": Number of runs returned in this response.
+            - "runs": List of runs sorted by start time then id, where each
+              entry contains minimal metadata:
+                {"id", "name", "run_type", "parent_run_id"}.
+
+        On error, returns {"error": <message>}.
+    """
+    try:
+        if trace_id == "null":
+            trace_id = None
+        if project_name == "null":
+            project_name = None
+        if project_id == "null":
+            project_id = None
+
+        if not trace_id:
+            return {"error": "trace_id is required"}
+
+        # Build base kwargs. We will rely on the SDK's native `trace` filter
+        # instead of a manual filter expression to ensure compatibility with
+        # the backend API requirements.
+        kwargs: Dict[str, Any] = {}
+        # Only use project_name if it is intentionally provided; do not
+        # reinterpret UUID-looking values as project_id.
+        if project_name:
+            kwargs["project_name"] = project_name
+        if project_id:
+            kwargs["project_id"] = project_id
+
+        # Determine requested count; None means fetch all
+        # Coerce a JSON number (int or float) to an integer count deterministically
+        requested_count: Optional[int]
+        if run_count is None:
+            requested_count = None
+        else:
+            try:
+                requested_count = max(0, int(run_count))
+            except Exception:
+                return {"error": "run_count must be a number or null"}
+
+        # If an explicit request of 0 runs was made, return empty result set.
+        if requested_count == 0:
+            return {"trace_id": trace_id, "total_count": 0, "runs": []}
+
+        collected = []
+        generator = client.list_runs(trace=trace_id, **kwargs)
+
+        for run in generator:
+            collected.append(run)
+
+        # Sort runs by start_time then id for determinism
+        collected.sort(
+            key=lambda r: (
+                getattr(r, "start_time", None) or 0,
+                str(getattr(r, "id", "")),
+            )
+        )
+
+        # Apply run_count limitation after sorting to ensure deterministic selection
+        selected = collected if requested_count is None else collected[: requested_count]
+
+        minimal: List[Dict[str, Any]] = [
+            {
+                "id": str(getattr(r, "id", "")),
+                "name": getattr(r, "name", None),
+                "run_type": getattr(r, "run_type", None),
+                "parent_run_id": str(getattr(r, "parent_run_id", "")),
+            }
+            for r in selected
+        ]
+        return {"trace_id": trace_id, "total_count": len(minimal), "runs": minimal}
+    except Exception as e:
+        return {"error": f"Error listing runs for trace: {str(e)}"}
+
+
+def get_run_tool(client, run_id: str) -> Dict[str, Any]:
+    """
+    Retrieve a single run by its UUID and return a fully formatted JSON payload.
+
+    Args:
+        client: LangSmith client instance.
+        run_id: The run UUID to retrieve (required).
+
+    Returns:
+        Dict[str, Any]: A dictionary under the "run" key containing a
+        JSON-serializable representation of the run with fields such as:
+        "id", "name", "run_type", "trace_id", "parent_run_id",
+        "inputs", "outputs", "error", "start_time", "end_time",
+        "extra", "metadata", "events", "feedback_stats",
+        "total_tokens", "prompt_tokens", and "completion_tokens".
+
+        On error, returns {"error": <message>}.
+    """
+    try:
+        if not run_id:
+            return {"error": "run_id is required"}
+
+        # Prefer list_runs with id filter for consistency with other code paths
+        runs = list(
+            client.list_runs(
+                id=[run_id],
+                limit=1,
+            )
+        )
+        if not runs:
+            return {"error": f"Run not found: {run_id}"}
+
+        run = runs[0]
+
+        def _dt(val):
+            try:
+                return val.isoformat() if val is not None else None
+            except Exception:
+                return None
+
+        def _str(val):
+            try:
+                return str(val) if val is not None else None
+            except Exception:
+                return None
+
+        formatted = {
+            "id": _str(getattr(run, "id", None)),
+            "name": getattr(run, "name", None),
+            "run_type": getattr(run, "run_type", None),
+            "trace_id": _str(getattr(run, "trace_id", None)),
+            "parent_run_id": _str(getattr(run, "parent_run_id", None)),
+            "inputs": getattr(run, "inputs", None),
+            "outputs": getattr(run, "outputs", None),
+            "error": getattr(run, "error", None),
+            "start_time": _dt(getattr(run, "start_time", None)),
+            "end_time": _dt(getattr(run, "end_time", None)),
+            "extra": getattr(run, "extra", None),
+            "metadata": getattr(run, "metadata", None),
+            "events": getattr(run, "events", None),
+            "feedback_stats": getattr(run, "feedback_stats", None),
+            "total_tokens": getattr(run, "total_tokens", None),
+            "prompt_tokens": getattr(run, "prompt_tokens", None),
+            "completion_tokens": getattr(run, "completion_tokens", None),
+        }
+
+        return {"run": formatted}
+    except Exception as e:
+        return {"error": f"Error getting run: {str(e)}"}

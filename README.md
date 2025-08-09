@@ -164,6 +164,8 @@ The LangSmith MCP Server provides the following tools for integration with LangS
 | `get_thread_history` | Retrieve the message history for a specific conversation thread, returning messages in chronological order. |
 | `get_project_runs_stats` | Get statistics about runs in a LangSmith project, either for the last run or overall project stats. |
 | `fetch_trace` | Fetch trace content for debugging and analyzing LangSmith runs using project name or trace ID. |
+| `list runs for trace` | List runs for a trace by UUID; optional `project_name`/`project_id` and `run_count`; returns minimal fields plus `total_count`. |
+| `get run` | Get full run details by UUID (inputs/outputs, timings, metadata, token usage). |
 | `list_datasets` | Fetch LangSmith datasets with filtering options by ID, type, name, or metadata. |
 | `list_examples` | Fetch examples from a LangSmith dataset with advanced filtering options. |
 | `read_dataset` | Read a specific dataset from LangSmith using dataset ID or name. |
