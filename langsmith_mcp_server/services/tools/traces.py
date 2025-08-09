@@ -20,12 +20,6 @@ def fetch_trace_tool(client, project_name: str = None, trace_id: str = None) -> 
     Returns:
         Dictionary containing the last trace and metadata
     """
-    # Handle None values and "null" string inputs
-    if project_name == "null":
-        project_name = None
-    if trace_id == "null":
-        trace_id = None
-
     if not project_name and not trace_id:
         return {"error": "Error: Either project_name or trace_id must be provided."}
 
@@ -159,7 +153,7 @@ def list_runs_for_trace_tool(
     project_name: Optional[str] = None,
     project_id: Optional[str] = None,
     trace_id: Optional[str] = None,
-    run_count: Optional[float] = None,
+    run_count: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     List the runs that belong to a specific trace and return minimal metadata.
@@ -173,8 +167,7 @@ def list_runs_for_trace_tool(
         project_name: Optional project name to further scope the search.
         project_id: Optional project UUID to further scope the search.
         trace_id: The trace/run UUID to list runs for (required).
-        run_count: Maximum number of runs to return. If omitted (None), all
-            available runs are returned. If set to 0, an empty result is returned.
+        run_count: Optional[int] — omit to return all runs (do not pass null); 0 returns none.
 
     Returns:
         Dict[str, Any]: A dictionary with the following keys:
@@ -187,13 +180,6 @@ def list_runs_for_trace_tool(
         On error, returns {"error": <message>}.
     """
     try:
-        if trace_id == "null":
-            trace_id = None
-        if project_name == "null":
-            project_name = None
-        if project_id == "null":
-            project_id = None
-
         if not trace_id:
             return {"error": "trace_id is required"}
 
@@ -210,21 +196,16 @@ def list_runs_for_trace_tool(
 
         # Determine requested count; None means fetch all
         # Coerce a JSON number (int or float) to an integer count deterministically
-        requested_count: Optional[int]
-        if run_count is None:
-            requested_count = None
-        else:
-            try:
-                requested_count = max(0, int(run_count))
-            except Exception:
-                return {"error": "run_count must be a number or null"}
+        requested_count: Optional[int] = None if run_count is None else max(0, int(run_count))
 
         # If an explicit request of 0 runs was made, return empty result set.
         if requested_count == 0:
             return {"trace_id": trace_id, "total_count": 0, "runs": []}
 
+        # If a limit was requested, push that down to the API to avoid fetching all pages
+        api_limit = requested_count if requested_count is not None else None
         collected = []
-        generator = client.list_runs(trace=trace_id, **kwargs)
+        generator = client.list_runs(trace=trace_id, limit=api_limit, **kwargs)
 
         for run in generator:
             collected.append(run)
@@ -276,17 +257,10 @@ def get_run_tool(client, run_id: str) -> Dict[str, Any]:
         if not run_id:
             return {"error": "run_id is required"}
 
-        # Prefer list_runs with id filter for consistency with other code paths
-        runs = list(
-            client.list_runs(
-                id=[run_id],
-                limit=1,
-            )
-        )
-        if not runs:
+        # Use dedicated read API for a single run if available
+        run = client.read_run(run_id)
+        if run is None:
             return {"error": f"Run not found: {run_id}"}
-
-        run = runs[0]
 
         def _dt(val):
             try:

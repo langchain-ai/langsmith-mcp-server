@@ -144,7 +144,7 @@ def register_tools(mcp, langsmith_client):
         project_name: str = None,
         project_id: str = None,
         trace_id: str = None,
-        run_count: Optional[float] = None,
+        run_count: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         List runs for a specific trace and return minimal metadata.
@@ -158,8 +158,7 @@ def register_tools(mcp, langsmith_client):
             project_name (str): Optional project name to further scope the search.
             project_id (str): Optional project UUID to further scope the search.
             trace_id (str): Trace/run UUID to list runs for (required).
-            run_count (Optional[int]): Max number of runs to return. If omitted, all
-                available runs are returned. If set to 0, an empty result is returned.
+            run_count (Optional[int]): Omit to return all runs (do not pass null); 0 returns none.
 
         Returns:
             Dict[str, Any]:
