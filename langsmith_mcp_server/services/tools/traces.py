@@ -37,76 +37,8 @@ except ImportError:
     endpoint_context: ContextVar[str] = ContextVar("endpoint", default="")
 
 
-def fetch_trace_tool(
-    client: Client, project_name: str = None, trace_id: str = None
-) -> Dict[str, Any]:
-    """
-    Fetch the trace content for a specific project or specify a trace ID.
-
-    Note: Only one of the parameters (project_name or trace_id) is required.
-    trace_id is preferred if both are provided.
-
-    Args:
-        client: LangSmith client instance
-        project_name: The name of the project to fetch the last trace for
-        trace_id: The ID of the trace to fetch (preferred parameter)
-
-    Returns:
-        Dictionary containing the last trace and metadata
-    """
-    # Handle None values and "null" string inputs
-    if project_name == "null":
-        project_name = None
-    if trace_id == "null":
-        trace_id = None
-
-    if not project_name and not trace_id:
-        return {"error": "Error: Either project_name or trace_id must be provided."}
-
-    try:
-        # Get the last run
-        runs = client.list_runs(
-            project_name=project_name if project_name else None,
-            id=[trace_id] if trace_id else None,
-            select=[
-                "inputs",
-                "outputs",
-                "run_type",
-                "id",
-                "error",
-                "total_tokens",
-                "total_cost",
-                "feedback_stats",
-                "app_path",
-                "thread_id",
-            ],
-            is_root=True,
-            limit=1,
-        )
-
-        runs = list(runs)
-
-        if not runs or len(runs) == 0:
-            return {"error": "No runs found for project_name: {}".format(project_name)}
-
-        run = runs[0]
-
-        # Return just the trace ID as we can use this to open the trace view
-        return {
-            "trace_id": str(run.id),
-            "run_type": run.run_type,
-            "id": str(run.id),
-            "error": run.error,
-            "inputs": run.inputs,
-            "outputs": run.outputs,
-            "total_tokens": run.total_tokens,
-            "total_cost": str(run.total_cost),
-            "feedback_stats": run.feedback_stats,
-            "app_path": run.app_path,
-            "thread_id": str(run.thread_id) if hasattr(run, "thread_id") else None,
-        }
-    except Exception as e:
-        return {"error": f"Error fetching last trace: {str(e)}"}
+# fetch_trace_tool was removed as it's redundant with fetch_runs.
+# Use fetch_runs with trace_id and limit=1 to achieve the same functionality.
 
 
 def get_thread_history_tool(client: Client, thread_id: str, project_name: str) -> Dict[str, Any]:
@@ -202,20 +134,23 @@ def get_project_runs_stats_tool(
         return {"error": "Error: Either project_name or trace_id must be provided."}
 
     try:
-        # Break down the qualified project name
-        parts = project_name.split("/")
-        is_qualified = len(parts) == 2
-        actual_project_name = parts[1] if is_qualified else project_name
+        # Break down the qualified project name if project_name is provided
+        actual_project_name = None
+        if project_name:
+            parts = project_name.split("/")
+            is_qualified = len(parts) == 2
+            actual_project_name = parts[1] if is_qualified else project_name
 
         # Get the project runs stats
         project_runs_stats = client.get_run_stats(
-            project_names=[actual_project_name] if project_name else None,
+            project_names=[actual_project_name] if actual_project_name else None,
             trace=trace_id if trace_id else None,
         )
         # remove the run_facets from the project_runs_stats
         project_runs_stats.pop("run_facets", None)
-        # add project_name to the project_runs_stats
-        project_runs_stats["project_name"] = actual_project_name
+        # add project_name to the project_runs_stats if available
+        if actual_project_name:
+            project_runs_stats["project_name"] = actual_project_name
         return project_runs_stats
     except Exception as e:
         return {"error": f"Error getting project runs stats: {str(e)}"}

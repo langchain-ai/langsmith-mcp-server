@@ -22,6 +22,8 @@ from langsmith_mcp_server.services.tools.prompts import (
 )
 from langsmith_mcp_server.services.tools.traces import (
     fetch_runs_tool,
+    get_project_runs_stats_tool,
+    get_thread_history_tool,
     list_projects_tool,
 )
 
@@ -358,70 +360,49 @@ client = Client()  # Will automatically use environment variables
         return documentation
 
     # Register conversation tools
-    # @mcp.tool()
-    # def get_thread_history(thread_id: str, project_name: str, ctx: Context = None) -> Dict[str, Any]:
-    #     """
-    #     Retrieve the message history for a specific conversation thread.
+    @mcp.tool()
+    def get_thread_history(thread_id: str, project_name: str, ctx: Context = None) -> Dict[str, Any]:
+        """
+        Retrieve the message history for a specific conversation thread.
 
-    #     Args:
-    #         thread_id (str): The unique ID of the thread to fetch history for
-    #         project_name (str): The name of the project containing the thread
-    #                            (format: "owner/project" or just "project")
+        Args:
+            thread_id (str): The unique ID of the thread to fetch history for
+            project_name (str): The name of the project containing the thread
+                               (format: "owner/project" or just "project")
 
-    #     Returns:
-    #         Dict[str, Any]: Dictionary containing the thread history,
-    #                             or an error message if the thread cannot be found
-    #     """
-    #     try:
-    #         client = get_client_from_context(ctx)
-    #         return get_thread_history_tool(client, thread_id, project_name)
-    #     except Exception as e:
-    #         return {"error": str(e)}
+        Returns:
+            Dict[str, Any]: Dictionary containing the thread history,
+                                or an error message if the thread cannot be found
+        """
+        try:
+            client = get_client_from_context(ctx)
+            return get_thread_history_tool(client, thread_id, project_name)
+        except Exception as e:
+            return {"error": str(e)}
 
     # Register analytics tools
-    # @mcp.tool()
-    # def get_project_runs_stats(project_name: str = None, trace_id: str = None, ctx: Context = None) -> Dict[str, Any]:
-    #     """
-    #     Get statistics about runs in a LangSmith project.
+    @mcp.tool()
+    def get_project_runs_stats(project_name: str = None, trace_id: str = None, ctx: Context = None) -> Dict[str, Any]:
+        """
+        Get statistics about runs in a LangSmith project.
 
-    #     Args:
-    #         project_name (str): The name of the project to analyze
-    #                           (format: "owner/project" or just "project")
-    #         trace_id (str): The specific ID of the trace to fetch (preferred parameter)
+        Args:
+            project_name (str): The name of the project to analyze
+                              (format: "owner/project" or just "project")
+            trace_id (str): The specific ID of the trace to fetch (preferred parameter)
 
-    #     Returns:
-    #         Dict[str, Any]: Dictionary containing the requested project run statistics
-    #                       or an error message if statistics cannot be retrieved
-    #     """
-    #     try:
-    #         client = get_client_from_context(ctx)
-    #         return get_project_runs_stats_tool(client, project_name, trace_id)
-    #     except Exception as e:
-    #         return {"error": str(e)}
+        Returns:
+            Dict[str, Any]: Dictionary containing the requested project run statistics
+                          or an error message if statistics cannot be retrieved
+        """
+        try:
+            client = get_client_from_context(ctx)
+            return get_project_runs_stats_tool(client, project_name, trace_id)
+        except Exception as e:
+            return {"error": str(e)}
 
-    # # Register trace tools
-    # @mcp.tool()
-    # def fetch_trace(project_name: str = None, trace_id: str = None, ctx: Context = None) -> Dict[str, Any]:
-    #     """
-    #     Fetch trace content for debugging and analyzing LangSmith runs.
-
-    #     Note: Only one parameter (project_name or trace_id) is required.
-    #     If both are provided, trace_id is preferred.
-    #     String "null" inputs are handled as None values.
-
-    #     Args:
-    #         project_name (str, optional): The name of the project to fetch the latest trace from
-    #         trace_id (str, optional): The specific ID of the trace to fetch (preferred parameter)
-
-    #     Returns:
-    #         Dict[str, Any]: Dictionary containing the trace data and metadata,
-    #                       or an error message if the trace cannot be found
-    #     """
-    #     try:
-    #         client = get_client_from_context(ctx)
-    #         return fetch_trace_tool(client, project_name, trace_id)
-    #     except Exception as e:
-    #         return {"error": str(e)}
+    # Note: fetch_trace was removed as it's redundant with fetch_runs.
+    # Use fetch_runs with trace_id and limit=1 to achieve the same functionality.
 
     @mcp.tool()
     def fetch_runs(
