@@ -74,8 +74,8 @@ endpoint_context: ContextVar[str]
 #### 3. Client Management ([common/helpers.py](langsmith_mcp_server/common/helpers.py))
 Helper functions for LangSmith client creation and management:
 - `get_langsmith_client_from_api_key()`: Creates Client instances from API keys
-- `get_client_from_context()`: Retrieves client from FastMCP context
-- `get_api_key_and_endpoint_from_context()`: Extracts credentials from context
+- `get_client_from_context()`: Retrieves client from FastMCP context, populates ctx state
+- `get_api_key_and_endpoint_from_context()`: Extracts credentials from context. Skips redundant `get_client_from_context()` call if ctx state is already populated (avoids double client creation when tools call both helpers)
 - Handles environment variable setup for the LangSmith SDK
 - No custom wrapper class - uses standard `langsmith.Client` directly
 
@@ -87,6 +87,7 @@ Helper functions for LangSmith client creation and management:
 - [traces.py](langsmith_mcp_server/services/tools/traces.py): Conversation history, run fetching, thread management
 - [experiments.py](langsmith_mcp_server/services/tools/experiments.py): Experiment listing and management
 - [usage.py](langsmith_mcp_server/services/tools/usage.py): Billing and usage tracking (trace counts)
+- [insights.py](langsmith_mcp_server/services/tools/insights.py): Insights clustering analysis (beta REST API). Key internal helpers: `_extract_items()` flattens nested API responses (e.g. `[{"clustering_jobs": [...]}]` → flat list), `_normalize_run()` ensures `id`/`trace_id`/`thread_id` are top-level strings
 - [workspaces.py](langsmith_mcp_server/services/tools/workspaces.py): **Empty stub** (future workspace management)
 
 **Prompts ([services/prompts/](langsmith_mcp_server/services/prompts/))**
@@ -135,9 +136,19 @@ All tools are registered in [register_tools.py](langsmith_mcp_server/services/re
 - `create_dataset()` - **Documentation tool** explaining how to create datasets
 - `update_examples()` - **Documentation tool** explaining how to update examples
 
+### Insights (Clustering Analysis)
+Insights tools are designed for cross-tool drill-down workflows. Start with `list_insights_jobs`, drill into a job, then into clusters and runs, and finally bridge to `fetch_runs` or `get_thread_history` using the normalised IDs returned by `get_insights_runs`.
+
+- `list_insights_jobs(project_name: str, session_id: str, limit: int, offset: int)` - List clustering jobs for a project. Use returned job IDs with `get_insights_job`.
+- `get_insights_job(job_id: str, project_name: str, session_id: str)` - Get a specific job with clusters and report. Use cluster IDs with `get_insights_cluster` or `get_insights_runs(cluster_id=...)`.
+- `get_insights_cluster(job_id: str, cluster_id: str, project_name: str, session_id: str)` - Get details of a specific cluster. Use `get_insights_runs(cluster_id=...)` to see runs in the cluster.
+- `get_insights_runs(job_id: str, project_name: str, session_id: str, cluster_id: str, page_number: int, max_chars_per_page: int, preview_chars: int, ...)` - Get runs for a job, optionally filtered by cluster. **Paginated** (same format as `fetch_runs`). Each run is normalised to include `id`, `trace_id`, and `thread_id` (when available) at the top level for direct use with `fetch_runs(trace_id=...)` or `get_thread_history(thread_id=...)`.
+
 ### Important Notes on Tools:
 - **Documentation tools** (`push_prompt`, `create_dataset`, `update_examples`, `run_experiment`) don't perform actions - they return instructions
-- **All results are paginated**: `fetch_runs` always returns paginated responses with `page_number`, `total_pages`, and character budget controls
+- **Paginated tools**: Both `fetch_runs` and `get_insights_runs` return paginated responses with `page_number`, `total_pages`, `max_chars_per_page`, and `preview_chars` (character-budget pagination via `paginate_runs()` in [pagination.py](langsmith_mcp_server/common/pagination.py))
+- **Insights run normalisation**: `get_insights_runs` normalises each run to ensure `id`, `trace_id`, and `thread_id` are top-level strings. `thread_id` is extracted from `metadata.thread_id`, `metadata.session_id`, or `metadata.conversation_id` when not already present.
+- **Insights response flattening**: The LangSmith insights API may return nested wrappers (e.g. `[{"clustering_jobs": [...]}]` instead of a flat list). The `_extract_items()` helper in [insights.py](langsmith_mcp_server/services/tools/insights.py) handles all response shapes — plain lists, single-element wrapper dicts, and dicts with known keys — for both `list_insights_jobs` and `get_insights_runs`.
 - Several tool implementations exist in [traces.py](langsmith_mcp_server/services/tools/traces.py) but are **NOT registered**:
   - `fetch_trace_tool()` - exists but not exposed as MCP tool
   - `get_project_runs_stats_tool()` - exists but not exposed as MCP tool
@@ -402,6 +413,33 @@ usage = get_billing_usage(
 )
 ```
 
+### 6. Insights Drill-Down (Clustering Analysis)
+```python
+# Step 1 — List clustering jobs for a project
+jobs = list_insights_jobs(project_name="my-app")
+
+# Step 2 — Inspect a specific job (clusters + report)
+job = get_insights_job(job_id=jobs["jobs"][0]["id"], project_name="my-app")
+
+# Step 3 — Get runs in a cluster (paginated, same format as fetch_runs)
+runs = get_insights_runs(
+    job_id=job["id"],
+    project_name="my-app",
+    cluster_id=job["clusters"][0]["id"],
+    page_number=1,
+)
+# runs includes: runs, page_number, total_pages, max_chars_per_page, preview_chars
+# Each run has id, trace_id, thread_id (when available) at the top level
+
+# Step 4 — Bridge to other tools using the normalised IDs
+# Full run details:
+details = fetch_runs(project_name="my-app", limit=50, page_number=1,
+                     trace_id=runs["runs"][0]["trace_id"])
+# Conversation history:
+history = get_thread_history(thread_id=runs["runs"][0]["thread_id"],
+                             project_name="my-app", page_number=1)
+```
+
 ---
 
 ## Error Handling & Reliability
@@ -449,12 +487,14 @@ langsmith-mcp-server/
 │       │   ├── traces.py         # Thread history, runs, traces
 │       │   ├── experiments.py    # Experiment listing
 │       │   ├── usage.py          # Billing/usage tracking
+│       │   ├── insights.py      # Insights clustering analysis
 │       │   └── workspaces.py     # Stub (empty)
 │       ├── prompts/              # Empty (future: MCP prompts)
 │       └── resources/            # Empty (future: MCP resources)
 ├── tests/
 │   ├── tools/
-│   │   └── test_dataset_tools.py
+│   │   ├── test_dataset_tools.py
+│   │   └── test_insights_tools.py
 │   └── test_mock.py
 ├── examples/                     # Example scripts showing tool usage
 │   ├── fetch_runs.py
@@ -587,6 +627,13 @@ langsmith-mcp-server/
   - Old: `paginate_runs("my-project", trace_id="abc", page_number=1)`
   - New: `fetch_runs("my-project", limit=100, page_number=1, trace_id="abc")`
   - Or without trace_id: `fetch_runs("my-project", limit=50, page_number=1, is_root="true")`
+
+### Insights Tools — Pagination, Normalisation & Cross-Tool Bridging (February 2025)
+- **Added**: `get_insights_runs` now pipes results through `paginate_runs()` — same paginated format as `fetch_runs` (`page_number`, `total_pages`, `max_chars_per_page`, `preview_chars`)
+- **Added**: `_normalize_run()` helper in [insights.py](langsmith_mcp_server/services/tools/insights.py) ensures `id`, `trace_id`, and `thread_id` are top-level strings on every run, enabling direct bridging to `fetch_runs(trace_id=...)` and `get_thread_history(thread_id=...)`
+- **Added**: `_extract_items()` helper to flatten nested API response shapes. The real insights API returns `[{"clustering_jobs": [...]}]` rather than a plain list; this helper unwraps it for both `list_insights_jobs` and `get_insights_runs`
+- **Fixed**: `get_api_key_and_endpoint_from_context()` now skips redundant `get_client_from_context()` call when ctx state is already populated, avoiding double client creation in insights tools
+- **Improved**: All insights tool docstrings (in `register_tools.py`) now guide LLM callers through the cross-tool drill-down workflow (list jobs → get job → get cluster → get runs → fetch_runs/get_thread_history)
 
 ## Future Development Roadmap
 

@@ -134,6 +134,14 @@ def get_client_from_context(ctx: Context) -> Client:
             workspace_id = os.environ.get("LANGSMITH_WORKSPACE_ID") or None
             endpoint = os.environ.get("LANGSMITH_ENDPOINT") or None
 
+            # Store in session for future requests (mirrors HTTP path above)
+            if api_key:
+                ctx.set_state("api_key", api_key)
+                if workspace_id:
+                    ctx.set_state("workspace_id", workspace_id)
+                if endpoint:
+                    ctx.set_state("endpoint", endpoint)
+
     if not api_key:
         raise ValueError(
             "API key not found. For HTTP transport, provide LANGSMITH-API-KEY header. "
@@ -148,6 +156,9 @@ def get_api_key_and_endpoint_from_context(ctx: Context) -> tuple[str, str]:
     Get API key and endpoint from FastMCP context (same sources as get_client_from_context).
     Used by tools that call LangSmith REST APIs directly (e.g. billing/usage).
 
+    If ctx state is already populated (e.g. by a prior get_client_from_context call),
+    the client is not recreated.
+
     Args:
         ctx: FastMCP context (automatically provided to tools).
 
@@ -157,7 +168,8 @@ def get_api_key_and_endpoint_from_context(ctx: Context) -> tuple[str, str]:
     Raises:
         ValueError: If API key is not found.
     """
-    get_client_from_context(ctx)  # populates ctx state (api_key, endpoint)
+    if not ctx.get_state("api_key"):
+        get_client_from_context(ctx)  # populates ctx state (api_key, endpoint)
     api_key = ctx.get_state("api_key")
     endpoint = ctx.get_state("endpoint") or "https://api.smith.langchain.com"
     return (str(api_key), str(endpoint).rstrip("/"))

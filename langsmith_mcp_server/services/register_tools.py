@@ -19,6 +19,12 @@ from langsmith_mcp_server.services.tools.datasets import (
 from langsmith_mcp_server.services.tools.experiments import (
     list_experiments_tool,
 )
+from langsmith_mcp_server.services.tools.insights import (
+    get_insights_cluster_tool,
+    get_insights_job_tool,
+    get_insights_runs_tool,
+    list_insights_jobs_tool,
+)
 from langsmith_mcp_server.services.tools.prompts import (
     get_prompt_tool,
     list_prompts_tool,
@@ -1751,3 +1757,200 @@ None
 - Evaluation results are stored as feedback in LangSmith and can be viewed in the UI
 """
         return documentation
+
+    # Register insights tools
+    @mcp.tool()
+    def list_insights_jobs(
+        project_name: Optional[str] = None,
+        session_id: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+        ctx: Context = None,
+    ) -> Dict[str, Any]:
+        """
+        List clustering (insights) jobs for a project.
+
+        Insights jobs perform automated clustering analysis of runs in a project,
+        grouping traces by usage patterns, failure modes, etc.
+
+        Use the returned job IDs to drill into a specific job with ``get_insights_job``.
+
+        Args:
+            project_name: Human-readable project name. Either this or session_id is required.
+            session_id: Direct session UUID. Takes precedence over project_name.
+            limit: Max jobs to return, capped at 100 (default: 20).
+            offset: Number of jobs to skip for pagination (default: 0).
+
+        Returns:
+            Dict with "jobs" list or error dict.
+        """
+        try:
+            client = get_client_from_context(ctx)
+            api_key, endpoint = get_api_key_and_endpoint_from_context(ctx)
+            workspace_id = ctx.get_state("workspace_id") or None
+            return list_insights_jobs_tool(
+                api_key=api_key,
+                endpoint=endpoint,
+                client=client,
+                project_name=project_name,
+                session_id=session_id,
+                limit=limit,
+                offset=offset,
+                workspace_id=workspace_id,
+            )
+        except Exception as e:
+            return {"error": str(e)}
+
+    @mcp.tool()
+    def get_insights_job(
+        job_id: str,
+        project_name: Optional[str] = None,
+        session_id: Optional[str] = None,
+        ctx: Context = None,
+    ) -> Dict[str, Any]:
+        """
+        Get a specific insights job with its clusters and report.
+
+        Returns full details of a clustering job including the generated clusters
+        and analysis report.
+
+        Use the cluster IDs from the response with ``get_insights_cluster`` to inspect
+        a single cluster, or with ``get_insights_runs(cluster_id=...)`` to see the runs
+        that belong to it.
+
+        Args:
+            job_id: The clustering job UUID.
+            project_name: Human-readable project name. Either this or session_id is required.
+            session_id: Direct session UUID. Takes precedence over project_name.
+
+        Returns:
+            Dict with job details or error dict.
+        """
+        try:
+            client = get_client_from_context(ctx)
+            api_key, endpoint = get_api_key_and_endpoint_from_context(ctx)
+            workspace_id = ctx.get_state("workspace_id") or None
+            return get_insights_job_tool(
+                api_key=api_key,
+                endpoint=endpoint,
+                client=client,
+                job_id=job_id,
+                project_name=project_name,
+                session_id=session_id,
+                workspace_id=workspace_id,
+            )
+        except Exception as e:
+            return {"error": str(e)}
+
+    @mcp.tool()
+    def get_insights_cluster(
+        job_id: str,
+        cluster_id: str,
+        project_name: Optional[str] = None,
+        session_id: Optional[str] = None,
+        ctx: Context = None,
+    ) -> Dict[str, Any]:
+        """
+        Get details of a specific cluster within an insights job.
+
+        Returns cluster metadata such as label, description, size, and representative runs.
+
+        To see all runs in this cluster, call ``get_insights_runs(cluster_id=...)`` with
+        the same cluster ID. From there you can use the run ``trace_id`` values with
+        ``fetch_runs(trace_id=...)`` for full run details, or ``thread_id`` values with
+        ``get_thread_history(thread_id=...)`` for conversation history.
+
+        Args:
+            job_id: The clustering job UUID.
+            cluster_id: The cluster UUID.
+            project_name: Human-readable project name. Either this or session_id is required.
+            session_id: Direct session UUID. Takes precedence over project_name.
+
+        Returns:
+            Dict with cluster details or error dict.
+        """
+        try:
+            client = get_client_from_context(ctx)
+            api_key, endpoint = get_api_key_and_endpoint_from_context(ctx)
+            workspace_id = ctx.get_state("workspace_id") or None
+            return get_insights_cluster_tool(
+                api_key=api_key,
+                endpoint=endpoint,
+                client=client,
+                job_id=job_id,
+                cluster_id=cluster_id,
+                project_name=project_name,
+                session_id=session_id,
+                workspace_id=workspace_id,
+            )
+        except Exception as e:
+            return {"error": str(e)}
+
+    @mcp.tool()
+    def get_insights_runs(
+        job_id: str,
+        project_name: Optional[str] = None,
+        session_id: Optional[str] = None,
+        cluster_id: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+        sort_by: Optional[str] = None,
+        sort_direction: Optional[str] = None,
+        page_number: int = 1,
+        max_chars_per_page: int = 25000,
+        preview_chars: int = 150,
+        ctx: Context = None,
+    ) -> Dict[str, Any]:
+        """
+        Get runs associated with an insights job, optionally filtered by cluster.
+
+        Returns the runs that were analyzed in a clustering job. Can be filtered to a
+        single cluster to see which runs belong to that group.
+
+        Results are paginated by character budget (same format as ``fetch_runs``).
+        Each run is normalised to include ``id``, ``trace_id``, and ``thread_id``
+        (when available) at the top level. Use these to drill into specific runs:
+        - ``fetch_runs(trace_id=<trace_id>, project_name=...)`` for full run details
+        - ``get_thread_history(thread_id=<thread_id>, project_name=...)`` for
+          conversation history
+
+        Args:
+            job_id: The clustering job UUID.
+            project_name: Human-readable project name. Either this or session_id is required.
+            session_id: Direct session UUID. Takes precedence over project_name.
+            cluster_id: Optional cluster UUID to filter runs to a single cluster.
+            limit: Max runs to fetch from API, capped at 100 (default: 20).
+            offset: Number of runs to skip at the API level (default: 0).
+            sort_by: Optional field to sort by (e.g. "start_time", "latency").
+            sort_direction: Optional sort direction ("asc" or "desc").
+            page_number: 1-based page index for char-based pagination (default: 1).
+            max_chars_per_page: Max JSON chars per page, capped at 30000 (default: 25000).
+            preview_chars: Truncate long strings to this length (default: 150).
+
+        Returns:
+            Paginated dict with "runs", "page_number", "total_pages",
+            "max_chars_per_page", "preview_chars"; or error dict.
+        """
+        try:
+            client = get_client_from_context(ctx)
+            api_key, endpoint = get_api_key_and_endpoint_from_context(ctx)
+            workspace_id = ctx.get_state("workspace_id") or None
+            return get_insights_runs_tool(
+                api_key=api_key,
+                endpoint=endpoint,
+                client=client,
+                job_id=job_id,
+                project_name=project_name,
+                session_id=session_id,
+                cluster_id=cluster_id,
+                limit=limit,
+                offset=offset,
+                sort_by=sort_by,
+                sort_direction=sort_direction,
+                workspace_id=workspace_id,
+                page_number=page_number,
+                max_chars_per_page=max_chars_per_page,
+                preview_chars=preview_chars,
+            )
+        except Exception as e:
+            return {"error": str(e)}
