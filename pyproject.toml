@@ -13,7 +13,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=2.13",
+    "fastmcp>=2.13,<3",
     "langsmith>=0.4.42",
     "langchain-core>=0.3.56",
     "uvicorn>=0.34.0"
