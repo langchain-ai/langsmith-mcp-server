@@ -42,7 +42,7 @@ def register_tools(mcp: FastMCP) -> None:
     """
 
     @mcp.tool()
-    def list_prompts(
+    async def list_prompts(
         is_public: str = "false", limit: int = 20, ctx: Context = None
     ) -> Dict[str, Any]:
         """
@@ -57,14 +57,14 @@ def register_tools(mcp: FastMCP) -> None:
             Dict[str, Any]: Dictionary containing the prompts and metadata
         """
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
             is_public_bool = is_public.lower() == "true"
             return list_prompts_tool(client, is_public_bool, limit)
         except Exception as e:
             return {"error": str(e)}
 
     @mcp.tool()
-    def get_prompt_by_name(prompt_name: str, ctx: Context = None) -> Dict[str, Any]:
+    async def get_prompt_by_name(prompt_name: str, ctx: Context = None) -> Dict[str, Any]:
         """
         Get a specific prompt by its exact name.
 
@@ -77,7 +77,7 @@ def register_tools(mcp: FastMCP) -> None:
                           or an error message if the prompt cannot be found
         """
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
             return get_prompt_tool(client, prompt_name=prompt_name)
         except Exception as e:
             return {"error": str(e)}
@@ -364,7 +364,7 @@ client = Client()  # Will automatically use environment variables
 
     # Register conversation tools
     @mcp.tool()
-    def get_thread_history(
+    async def get_thread_history(
         thread_id: str,
         project_name: str,
         page_number: int,
@@ -392,7 +392,7 @@ client = Client()  # Will automatically use environment variables
             preview_chars; or an error message if the thread cannot be found
         """
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
             return get_thread_history_tool(
                 client,
                 thread_id,
@@ -405,7 +405,7 @@ client = Client()  # Will automatically use environment variables
             return {"error": str(e)}
 
     @mcp.tool()
-    def fetch_runs(
+    async def fetch_runs(
         project_name: str,
         limit: int,
         page_number: int = 1,
@@ -513,7 +513,7 @@ client = Client()  # Will automatically use environment variables
         # Check r["total_pages"] and fetch subsequent pages if needed
         """  # noqa: W293
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
 
             # Parse project name (support JSON array format)
             parsed_project_name = project_name
@@ -560,7 +560,7 @@ client = Client()  # Will automatically use environment variables
 
     # Register project tools
     @mcp.tool()
-    def list_projects(
+    async def list_projects(
         limit: int = 5,
         project_name: str = None,
         more_info: str = "false",
@@ -668,7 +668,7 @@ client = Client()  # Will automatically use environment variables
         - The function uses `name_contains` for filtering, so partial matches work
         """  # noqa: W293
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
             parsed_more_info = more_info.lower() == "true"
             if reference_dataset_id is not None and reference_dataset_name is not None:
                 parsed_more_info = True
@@ -684,7 +684,7 @@ client = Client()  # Will automatically use environment variables
             return {"error": str(e)}
 
     @mcp.tool()
-    def get_billing_usage(
+    async def get_billing_usage(
         starting_on: str,
         ending_before: str,
         workspace: Optional[str] = None,
@@ -709,7 +709,7 @@ client = Client()  # Will automatically use environment variables
             List of billing metric objects with augmented groups, or dict with "error" key
         """
         try:
-            api_key, endpoint = get_api_key_and_endpoint_from_context(ctx)
+            api_key, endpoint = await get_api_key_and_endpoint_from_context(ctx)
             on_current = on_current_plan.lower() == "true"
             result = get_billing_usage_tool(
                 api_key=api_key,
@@ -726,7 +726,7 @@ client = Client()  # Will automatically use environment variables
             return {"error": str(e)}
 
     @mcp.tool()
-    def list_experiments(
+    async def list_experiments(
         reference_dataset_id: Optional[str] = None,
         reference_dataset_name: Optional[str] = None,
         limit: int = 5,
@@ -830,7 +830,7 @@ client = Client()  # Will automatically use environment variables
         - Experiment projects are used for model evaluation and comparison across different runs
         """  # noqa: W293
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
             return list_experiments_tool(
                 client,
                 reference_dataset_id=reference_dataset_id,
@@ -843,7 +843,7 @@ client = Client()  # Will automatically use environment variables
 
     # Register dataset tools
     @mcp.tool()
-    def list_datasets(
+    async def list_datasets(
         dataset_ids: Optional[str] = None,
         data_type: Optional[str] = None,
         dataset_name: Optional[str] = None,
@@ -871,7 +871,7 @@ client = Client()  # Will automatically use environment variables
                             or an error message if the datasets cannot be retrieved
         """  # noqa: W293
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
 
             # Parse list strings (JSON arrays)
             parsed_dataset_ids = None
@@ -904,7 +904,7 @@ client = Client()  # Will automatically use environment variables
             return {"error": str(e)}
 
     @mcp.tool()
-    def list_examples(
+    async def list_examples(
         dataset_id: Optional[str] = None,
         dataset_name: Optional[str] = None,
         example_ids: Optional[str] = None,
@@ -943,7 +943,7 @@ client = Client()  # Will automatically use environment variables
                             or an error message if the examples cannot be retrieved
         """  # noqa: W293
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
 
             # Parse list strings (JSON arrays)
             parsed_example_ids = None
@@ -1001,7 +1001,7 @@ client = Client()  # Will automatically use environment variables
             return {"error": str(e)}
 
     @mcp.tool()
-    def read_dataset(
+    async def read_dataset(
         dataset_id: Optional[str] = None,
         dataset_name: Optional[str] = None,
         ctx: Context = None,
@@ -1032,7 +1032,7 @@ client = Client()  # Will automatically use environment variables
             ```
         """
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
             return read_dataset_tool(
                 client,
                 dataset_id=dataset_id,
@@ -1042,7 +1042,7 @@ client = Client()  # Will automatically use environment variables
             return {"error": str(e)}
 
     @mcp.tool()
-    def read_example(
+    async def read_example(
         example_id: str,
         as_of: Optional[str] = None,
         ctx: Context = None,
@@ -1070,7 +1070,7 @@ client = Client()  # Will automatically use environment variables
             ```
         """
         try:
-            client = get_client_from_context(ctx)
+            client = await get_client_from_context(ctx)
             return read_example_tool(
                 client,
                 example_id=example_id,

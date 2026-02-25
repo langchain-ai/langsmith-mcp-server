@@ -55,6 +55,7 @@ register_resources(mcp)    # Currently empty stub
 - API keys are handled per-request via [middleware.py](langsmith_mcp_server/middleware.py), not at server initialization
 - The server supports both stdio (CLI) and HTTP transports
 - HTTP mode runs via uvicorn and is configured in the Dockerfile
+- **Client disconnect patch**: [streamable_http_patch.py](langsmith_mcp_server/streamable_http_patch.py) patches the MCP streamable HTTP transport so that when the client (or proxy) closes the connection early, the server logs and continues instead of crashing with `ClosedResourceError` / `BrokenResourceError` (see [Troubleshooting](#6-http-streamable-client-disconnect-crashes)).
 
 #### 2. Authentication & Middleware ([middleware.py](langsmith_mcp_server/middleware.py))
 Request-scoped authentication system that:
@@ -434,7 +435,8 @@ usage = get_billing_usage(
 langsmith-mcp-server/
 ├── langsmith_mcp_server/
 │   ├── server.py                 # Main MCP server, FastMCP app, HTTP/stdio setup
-│   ├── middleware.py             # API key authentication middleware
+│   ├── streamable_http_patch.py  # Client-disconnect handling for HTTP streamable transport
+│   ├── middleware.py            # API key authentication middleware
 │   ├── common/
 │   │   ├── helpers.py            # Client creation, UUID conversion, utilities
 │   │   ├── pagination.py         # Pagination logic for runs and messages
@@ -500,6 +502,12 @@ langsmith-mcp-server/
    - Solution: Ensure running `uv run mcp dev langsmith_mcp_server/server.py`
    - Check that port isn't already in use
    - Set `LANGSMITH_API_KEY` in inspector UI after starting
+
+6. **HTTP streamable client disconnect crashes**
+   - Error: `anyio.BrokenResourceError` / `anyio.ClosedResourceError`, "SSE response error", or `ExceptionGroup` in `streamable_http._handle_post_request`
+   - Cause: Client or proxy (e.g. load balancer) closed the connection before the server finished sending.
+   - Solution: The server applies a patch at startup ([streamable_http_patch.py](langsmith_mcp_server/streamable_http_patch.py)) to catch these and log at debug level instead of crashing. If you still see crashes, ensure the patch is applied (HTTP app is created and patch runs). On Render or behind a proxy, increase request/response timeouts (e.g. 60s+ for `/mcp`) so the connection is not closed while the server is still working.
+   - Upstream: [python-sdk#2064](https://github.com/modelcontextprotocol/python-sdk/issues/2064), [PR #2072](https://github.com/modelcontextprotocol/python-sdk/pull/2072). When a fix is released, upgrading `mcp`/`fastmcp` may allow removing the patch.
 
 ### Development Debugging
 
