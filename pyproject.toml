@@ -4,7 +4,7 @@ build-backend = "pdm.backend"
 
 [project]
 name = "langsmith-mcp-server"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for Langsmith SDK integration"
 license = "MIT"
 readme = "README.md"
@@ -13,7 +13,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "fastmcp>=3.0.2",
+    "fastmcp==3.0.2",
     "langsmith>=0.4.42",
     "langchain-core>=1.2.5",
     "uvicorn>=0.34.0"
