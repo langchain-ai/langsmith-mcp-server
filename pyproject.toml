@@ -33,6 +33,10 @@ test = [
     "websockets>=15.0.1",
     "pytest-timeout>=2.4.0"
 ]
+load = [
+    "langchain-mcp-adapters>=0.2.1",
+    "python-dotenv>=1.0.0",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/langchain-ai/langsmith-mcp-server"
