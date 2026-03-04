@@ -360,6 +360,38 @@ You can test the server with [MCP Inspector](https://github.com/modelcontextprot
    - **Stdio:** Choose stdio transport and configure the server command (e.g. `uv run langsmith-mcp-server`) and set `LANGSMITH_API_KEY` in the environment.
    - **Streamable HTTP:** Start the server first (`uv run uvicorn langsmith_mcp_server.server:app --host 0.0.0.0 --port 8000` or Docker), then choose streamable-http, URL **`http://localhost:8000/mcp`**, and add header **`LANGSMITH-API-KEY`** = your API key.
 
+### Load testing
+
+A **session-based** load test opens many MCP sessions and calls the `list_prompts` tool in each, using [langchain-mcp-adapters](https://github.com/langchain-ai/langchain-mcp-adapters). Run from the CLI (no UI). The server must be running first.
+
+```bash
+uv sync --group load
+# Terminal 1: start the server
+uv run uvicorn langsmith_mcp_server.server:app --host 0.0.0.0 --port 8000
+# Terminal 2: run the load test
+uv run python tests/load_test_sessions.py --sessions 20 --calls-per-session 3
+```
+
+**Options**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--url` | `http://localhost:8000/mcp` | MCP endpoint URL |
+| `--api-key` | from `.env` | `LANGSMITH_API_KEY` (or set in project root `.env`) |
+| `--sessions` | 10 | Number of concurrent sessions |
+| `--calls-per-session` | 3 | `list_prompts` calls per session |
+| `--debug` | off | Print step-by-step logs and first error traceback |
+| `--report` PATH | — | Write a report after the run (see below) |
+
+**Report**
+
+Use `--report PATH` to write a JSON report after the test (e.g. `--report load_test_report` creates `load_test_report.json` with config, summary, per-session results, and first error).
+
+```bash
+uv run python tests/load_test_sessions.py --sessions 5 --report load_test_report
+# Creates: load_test_report.json (in current directory)
+```
+
 ### Contributing checklist
 
 Before opening a PR:

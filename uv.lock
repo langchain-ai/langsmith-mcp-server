@@ -669,6 +669,20 @@ wheels = [
 ]
 
 [[package]]
+name = "langchain-mcp-adapters"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+    { name = "mcp" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d9/52/cebf0ef5b1acef6cbc63d671171d43af70f12d19f55577909c7afa79fb6e/langchain_mcp_adapters-0.2.1.tar.gz", hash = "sha256:58e64c44e8df29ca7eb3b656cf8c9931ef64386534d7ca261982e3bdc63f3176", size = 36394 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/03/81/b2479eb26861ab36be851026d004b2d391d789b7856e44c272b12828ece0/langchain_mcp_adapters-0.2.1-py3-none-any.whl", hash = "sha256:9f96ad4c64230f6757297fec06fde19d772c99dbdfbca987f7b7cfd51ff77240", size = 22708 },
+]
+
+[[package]]
 name = "langsmith"
 version = "0.7.6"
 source = { registry = "https://pypi.org/simple" }
@@ -700,6 +714,10 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+load = [
+    { name = "langchain-mcp-adapters" },
+    { name = "python-dotenv" },
+]
 test = [
     { name = "mypy" },
     { name = "pytest" },
@@ -720,6 +738,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+load = [
+    { name = "langchain-mcp-adapters", specifier = ">=0.2.1" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+]
 test = [
     { name = "mypy", specifier = ">=1.8.0" },
     { name = "pytest", specifier = ">=8.0.0" },
