@@ -55,7 +55,7 @@ register_resources(mcp)    # Currently empty stub
 - API keys are handled per-request via [middleware.py](langsmith_mcp_server/middleware.py), not at server initialization
 - The server supports both stdio (CLI) and HTTP transports
 - HTTP mode runs via uvicorn and is configured in the Dockerfile
-- **Client disconnect patch**: [streamable_http_patch.py](langsmith_mcp_server/streamable_http_patch.py) patches the MCP streamable HTTP transport so that when the client (or proxy) closes the connection early, the server logs and continues instead of crashing with `ClosedResourceError` / `BrokenResourceError` (see [Troubleshooting](#6-http-streamable-client-disconnect-crashes)).
+- **Client disconnect patch**: [streamable_http_patch.py](langsmith_mcp_server/streamable_http_patch.py) patches the MCP streamable HTTP transport so that when the client (or proxy) closes the connection early, the server logs and continues instead of crashing with `ClosedResourceError` / `BrokenResourceError` (see [Troubleshooting](#7-http-streamable-client-disconnect-crashes)).
 
 #### 2. Authentication & Middleware ([middleware.py](langsmith_mcp_server/middleware.py))
 Request-scoped authentication system that:
@@ -74,10 +74,9 @@ endpoint_context: ContextVar[str]
 
 #### 3. Client Management ([common/helpers.py](langsmith_mcp_server/common/helpers.py))
 Helper functions for LangSmith client creation and management:
-- `get_langsmith_client_from_api_key()`: Creates Client instances from API keys
-- `get_client_from_context()`: Retrieves client from FastMCP context, populates ctx state
-- `get_api_key_and_endpoint_from_context()`: Extracts credentials from context. Skips redundant `get_client_from_context()` call if ctx state is already populated (avoids double client creation when tools call both helpers)
-- Handles environment variable setup for the LangSmith SDK
+- `get_langsmith_client_from_api_key()`: Creates Client instances from API keys (no `os.environ` mutation; credentials passed explicitly to avoid cross-request races)
+- `get_client_from_context()`: Retrieves client from FastMCP context; reuses one Client per request via request-scoped state to reduce memory churn
+- `get_api_key_and_endpoint_from_context()`: Extracts credentials from context
 - No custom wrapper class - uses standard `langsmith.Client` directly
 
 #### 4. Service Layer Architecture
@@ -461,6 +460,8 @@ history = get_thread_history(thread_id=runs["runs"][0]["thread_id"],
 
 ### Performance Optimizations
 - **Lazy Client Creation**: LangSmith client only created when needed per request
+- **Request-Scoped Client Reuse**: One Client per request (cached in FastMCP request state) to avoid creating many clients under load and reduce memory churn
+- **No os.environ Mutation**: Credentials are passed explicitly to the Client constructor; we do not set `LANGSMITH_API_KEY` etc. in the process environment, avoiding concurrent-request races that can cause 403 Forbidden
 - **Pagination Support**: Large result sets can be paginated (runs, messages, examples)
 - **Efficient Filtering**: Most tools support server-side filtering to reduce data transfer
 - **Connection Reuse**: HTTP client connection pooling via httpx (used by langsmith SDK)
@@ -543,7 +544,12 @@ langsmith-mcp-server/
    - Check that port isn't already in use
    - Set `LANGSMITH_API_KEY` in inspector UI after starting
 
-6. **HTTP streamable client disconnect crashes**
+6. **403 Forbidden or memory limit under load (e.g. hosted Render)**
+   - Error: `403 Client Error: Forbidden` on valid API key, or instance hits memory limit after traffic spikes
+   - Cause: Previously the server mutated `os.environ` with the request's API key, so concurrent requests could overwrite each other's credentials (leading to 403). Creating a new LangSmith Client on every tool call also increased memory use under load.
+   - Solution: The codebase now (1) does not set `os.environ` for LangSmith; credentials are passed explicitly to the Client, and (2) reuses one Client per request via FastMCP request-scoped state. If you run an older version, upgrade. For hosted deployments, consider memory limits and request timeouts (see item 7).
+
+7. **HTTP streamable client disconnect crashes**
    - Error: `anyio.BrokenResourceError` / `anyio.ClosedResourceError`, "SSE response error", or `ExceptionGroup` in `streamable_http._handle_post_request`
    - Cause: Client or proxy (e.g. load balancer) closed the connection before the server finished sending.
    - Solution: The server applies a patch at startup ([streamable_http_patch.py](langsmith_mcp_server/streamable_http_patch.py)) to catch these and log at debug level instead of crashing. If you still see crashes, ensure the patch is applied (HTTP app is created and patch runs). On Render or behind a proxy, increase request/response timeouts (e.g. 60s+ for `/mcp`) so the connection is not closed while the server is still working.

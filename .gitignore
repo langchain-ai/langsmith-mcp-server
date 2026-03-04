@@ -42,3 +42,6 @@ node_modules/
 
 # Logs
 *.log
+
+# Load test output
+load_test_report.json

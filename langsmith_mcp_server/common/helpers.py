@@ -32,6 +32,10 @@ def get_langsmith_client_from_api_key(
     """
     Create a LangSmith client from an API key and optional configuration.
 
+    We do not set os.environ (LANGSMITH_API_KEY, etc.) so that concurrent
+    HTTP requests do not overwrite each other's credentials, which can cause
+    403 Forbidden when the wrong key is used.
+
     Args:
         api_key: The LangSmith API key (required)
         workspace_id: Optional workspace ID for API keys scoped to multiple workspaces
@@ -40,14 +44,7 @@ def get_langsmith_client_from_api_key(
     Returns:
         LangSmith Client instance
     """  # noqa: W293
-    # Set environment variables for LangSmith client (some SDK operations read from env)
-    os.environ["LANGSMITH_API_KEY"] = api_key
-    if workspace_id:
-        os.environ["LANGSMITH_WORKSPACE_ID"] = workspace_id
-    if endpoint:
-        os.environ["LANGSMITH_ENDPOINT"] = endpoint
-
-    # Initialize the LangSmith client with parameters
+    # Initialize the LangSmith client with parameters (no os.environ mutation)
     client_kwargs = {"api_key": api_key}
     if workspace_id:
         client_kwargs["workspace_id"] = workspace_id
@@ -148,7 +145,17 @@ async def get_client_from_context(ctx: Context) -> Client:
             "For STDIO transport, set LANGSMITH_API_KEY environment variable."
         )
 
-    return get_langsmith_client_from_api_key(api_key, workspace_id=workspace_id, endpoint=endpoint)
+    # Reuse the same Client within this request to avoid creating a new one per tool
+    # call (reduces memory churn and connection buildup under load).
+    _cache_key = "__langsmith_client"
+    cached = await ctx.get_state(_cache_key)
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+    client = get_langsmith_client_from_api_key(
+        api_key, workspace_id=workspace_id, endpoint=endpoint
+    )
+    await ctx.set_state(_cache_key, client, serializable=False)
+    return client
 
 
 async def get_api_key_and_endpoint_from_context(ctx: Context) -> tuple[str, str]:

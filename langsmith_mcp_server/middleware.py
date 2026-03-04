@@ -5,7 +5,7 @@ from contextvars import ContextVar
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_405_METHOD_NOT_ALLOWED
 
 # Context variables to store LangSmith config for current request
 # These are used to pass config from middleware to FastMCP's session state
@@ -29,10 +29,23 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     3. LANGSMITH-ENDPOINT (optional)
     """  # noqa: W293
 
+    # MCP endpoint only accepts POST (and DELETE for session teardown); GET returns 405
+    _MCP_PATH = "/mcp"
+    _MCP_ALLOWED_METHODS = frozenset({"POST", "DELETE"})
+
     async def dispatch(self, request: Request, call_next):
-        # Skip authentication for health check
-        if request.url.path == "/health":
+        # Skip authentication for health check and OAuth discovery (we use API key, not OAuth)
+        if request.url.path in ("/health", "/.well-known/oauth-authorization-server"):
             return await call_next(request)
+
+        # GET (e.g. opening /mcp in a browser) → 405 Method Not Allowed (standard for MCP HTTP)
+        path = request.url.path.rstrip("/") or "/"
+        if path == self._MCP_PATH and request.method not in self._MCP_ALLOWED_METHODS:
+            return JSONResponse(
+                status_code=HTTP_405_METHOD_NOT_ALLOWED,
+                content={"error": "Method Not Allowed", "allow": list(self._MCP_ALLOWED_METHODS)},
+                headers={"Allow": ", ".join(sorted(self._MCP_ALLOWED_METHODS))},
+            )
 
         # Require LANGSMITH-API-KEY header
         api_key = request.headers.get("LANGSMITH-API-KEY")
