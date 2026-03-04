@@ -690,7 +690,7 @@ wheels = [
 
 [[package]]
 name = "langsmith-mcp-server"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
@@ -713,7 +713,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", specifier = ">=3.0.2" },
+    { name = "fastmcp", specifier = "==3.0.2" },
     { name = "langchain-core", specifier = ">=1.2.5" },
     { name = "langsmith", specifier = ">=0.4.42" },
     { name = "uvicorn", specifier = ">=0.34.0" },

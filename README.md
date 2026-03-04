@@ -309,41 +309,67 @@ curl http://localhost:8000/health
 
 This endpoint does not require authentication and returns `"LangSmith MCP server is running"` when the server is healthy.
 
-## 🧪 Development and Contributing 🤝
+## 🧪 Development and Contributing
 
-If you want to develop or contribute to the LangSmith MCP Server, follow these steps:
+### Prerequisites
 
-1. Create a virtual environment and install dependencies:
+- **Python** 3.10+ (3.11+ recommended)
+- **[uv](https://docs.astral.sh/uv/)** – install with `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **LangSmith API key** – from [smith.langchain.com](https://smith.langchain.com)
+- **Node.js** (optional) – only if you want to use [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to test the server (stdio or streamable-http)
+
+### Setup
+
+```bash
+git clone https://github.com/langchain-ai/langsmith-mcp-server.git
+cd langsmith-mcp-server
+
+uv sync                    # Install dependencies
+uv sync --group test       # Include test dependencies (pytest, ruff, mypy)
+
+uvx langsmith-mcp-server   # Verify CLI runs (stdio)
+```
+
+### Development workflow
+
+1. **Edit code** in `langsmith_mcp_server/` or `tests/`.
+2. **Format and lint** (required before committing):
    ```bash
-   uv sync
-   ```
-
-2. To include test dependencies:
-   ```bash
-   uv sync --group test
-   ```
-
-3. View available MCP commands:
-   ```bash
-   uvx langsmith-mcp-server
-   ```
-
-4. For development, run the MCP inspector:
-   ```bash
-   uv run mcp dev langsmith_mcp_server/server.py
-   ```
-   - This will start the MCP inspector on a network port
-   - Install any required libraries when prompted
-   - The MCP inspector will be available in your browser
-   - Set the `LANGSMITH_API_KEY` environment variable in the inspector
-   - Connect to the server
-   - Navigate to the "Tools" tab to see all available tools
-
-5. Before submitting your changes, run the linting and formatting checks:
-   ```bash
-   make lint
    make format
+   make lint
    ```
+3. **Run tests**:
+   ```bash
+   make test
+   # Or a single file:
+   make test TEST_FILE=tests/tools/test_dataset_tools.py
+   ```
+4. **Type-check** (optional): `uv run mypy langsmith_mcp_server/`
+
+### Testing with MCP Inspector
+
+You can test the server with [MCP Inspector](https://github.com/modelcontextprotocol/inspector) using either **stdio** or **streamable-http**.
+
+1. **Start MCP Inspector:**
+   ```bash
+   npx @modelcontextprotocol/inspector@latest
+   ```
+   Open **http://localhost:6274** in your browser.
+
+2. **Connect** in the Inspector:
+   - **Stdio:** Choose stdio transport and configure the server command (e.g. `uv run langsmith-mcp-server`) and set `LANGSMITH_API_KEY` in the environment.
+   - **Streamable HTTP:** Start the server first (`uv run uvicorn langsmith_mcp_server.server:app --host 0.0.0.0 --port 8000` or Docker), then choose streamable-http, URL **`http://localhost:8000/mcp`**, and add header **`LANGSMITH-API-KEY`** = your API key.
+
+### Contributing checklist
+
+Before opening a PR:
+
+- [ ] `make format` and `make lint` pass
+- [ ] `make test` passes
+- [ ] New tools or behavior are documented (e.g. in [CLAUDE.md](CLAUDE.md) if you change architecture or tools)
+- [ ] Error handling in tools returns `{"error": "..."}` rather than raising
+
+For more detail (adding tools, code standards, troubleshooting), see **[CLAUDE.md](CLAUDE.md)**.
 
 ## 📄 License
 
