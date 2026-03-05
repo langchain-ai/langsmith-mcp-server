@@ -202,20 +202,57 @@ Copy this configuration into Cursor → MCP Settings (replace `/path/to/uvx` wit
 
 ![LangSmith Cursor Integration](docs/assets/cursor_mcp.png)
 
-### 🔧 Environment Variables
+### 🔧 Headers (tool invocation)
 
-The LangSmith MCP Server supports the following environment variables:
+When connecting over **HTTP** (e.g. streamable HTTP or a hosted MCP endpoint), the server uses **headers** for authentication and configuration. Your MCP client must send these with each request; no environment variables are required for tool invocation.
 
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `LANGSMITH_API_KEY` | ✅ Yes | Your LangSmith API key for authentication | `lsv2_pt_1234567890` |
-| `LANGSMITH_WORKSPACE_ID` | ❌ No | Workspace ID for API keys scoped to multiple workspaces | `your_workspace_id` |
-| `LANGSMITH_ENDPOINT` | ❌ No | Custom API endpoint URL (for self-hosted or EU region) | `https://api.smith.langchain.com` |
+| Header | Required | Description |
+|--------|----------|-------------|
+| `LANGSMITH-API-KEY` | ✅ Yes | Your LangSmith API key for tool calls (list prompts, fetch runs, etc.) |
+| `LANGSMITH-WORKSPACE-ID` | ❌ No | Workspace ID for API keys scoped to multiple workspaces |
+| `LANGSMITH-ENDPOINT` | ❌ No | Custom API endpoint URL (for self-hosted or EU region) |
 
-**Notes:**
-- Only `LANGSMITH_API_KEY` is required for basic functionality
-- `LANGSMITH_WORKSPACE_ID` is useful when your API key has access to multiple workspaces
-- `LANGSMITH_ENDPOINT` allows you to use custom endpoints for self-hosted LangSmith installations or the EU region
+Optional headers used only when [server monitoring](#optional-tool-call-monitoring-to-a-second-langsmith-instance) is enabled (for grouping traces by session):
+
+| Header | Description |
+|--------|-------------|
+| `mcp-session-id` | Session or thread id; stored in trace metadata as `session_id` |
+| `x-session-id` | Fallback if `mcp-session-id` is not set |
+| `x-request-id` | Fallback for request-scoped grouping |
+
+**Stdio transport:** When running the server over stdio (e.g. `uvx langsmith-mcp-server`), there are no headers. The server falls back to the **environment variables** `LANGSMITH_API_KEY`, `LANGSMITH_WORKSPACE_ID`, and `LANGSMITH_ENDPOINT` in the process environment so that tool invocation still works.
+
+---
+
+### 🔧 Environment variables
+
+Environment variables are **not** used for tool invocation when using HTTP (headers are). They are used for:
+
+1. **Stdio transport** – fallback for credentials when no headers exist (see above).
+2. **Load tests** – e.g. `tests/load_test_sessions.py` reads `LANGSMITH_API_KEY` from the environment (or a `.env` file at the project root).
+3. **Optional server monitoring** – tracing tool calls to a second LangSmith instance (see below).
+
+| Variable | Used for | Description |
+|----------|----------|-------------|
+| `LANGSMITH_API_KEY` | Stdio fallback, load tests | LangSmith API key (when not provided via headers) |
+| `LANGSMITH_WORKSPACE_ID` | Stdio fallback | Workspace ID (optional) |
+| `LANGSMITH_ENDPOINT` | Stdio fallback | Custom endpoint URL (optional) |
+
+#### Optional: Tool-call monitoring to a second LangSmith instance
+
+You can log every MCP tool call (with inputs and outputs) to a **separate** LangSmith project for monitoring and analytics. Set these in your environment (e.g. in a `.env` file at the project root; the server loads `.env` via `python-dotenv`):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LANGSMITH_MONITORING_API_KEY` | Yes (to enable) | API key for the LangSmith instance used for monitoring |
+| `LANGSMITH_MONITORING_ENDPOINT` | No | Endpoint URL (default: cloud) |
+| `LANGSMITH_MONITORING_WORKSPACE_ID` | No | Workspace ID for the monitoring instance |
+| `LANGSMITH_MONITORING_PROJECT` | No | Project name for monitoring traces (default: `mcp-server-monitoring`) |
+| `LANGSMITH_TRACING` | Yes (to send traces) | Set to `true` so traces are sent to LangSmith ([custom instrumentation](https://docs.smith.langchain.com)) |
+
+Each tool run is traced with `run_type="tool"` and a **session_id** in metadata (from the `mcp-session-id`, `x-session-id`, or `x-request-id` header when using HTTP, or generated per request).
+
+If you use the **hosted** LangSmith MCP Server, anonymous usage data is sent to a separate LangSmith project so we can iterate and improve the product.
 
 
 ## 🐳 Docker Deployment (HTTP-Streamable)

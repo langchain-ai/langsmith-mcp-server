@@ -1,11 +1,14 @@
 """Simple API key authentication middleware for MCP HTTP."""
 
 from contextvars import ContextVar
+from uuid import uuid4
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_405_METHOD_NOT_ALLOWED
+
+from langsmith_mcp_server.monitoring import set_monitoring_session_id
 
 # Context variables to store LangSmith config for current request
 # These are used to pass config from middleware to FastMCP's session state
@@ -68,6 +71,15 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         api_key_context.set(api_key)
         workspace_id_context.set(workspace_id)
         endpoint_context.set(endpoint)
+
+        # Session/thread id for monitoring: from headers or per-request id
+        session_id = (
+            request.headers.get("mcp-session-id")
+            or request.headers.get("x-session-id")
+            or request.headers.get("x-request-id")
+            or str(uuid4())
+        )
+        set_monitoring_session_id(session_id)
 
         try:
             return await call_next(request)

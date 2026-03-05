@@ -63,6 +63,7 @@ Request-scoped authentication system that:
 - Supports optional `LANGSMITH-WORKSPACE-ID` and `LANGSMITH-ENDPOINT` headers
 - Stores credentials in context variables for access by tools
 - Returns 401 for missing API keys (except /health endpoint)
+- Sets **session/thread id** for monitoring: from `mcp-session-id`, `x-session-id`, or `x-request-id` header, or a generated UUID per request
 - Automatically cleans up context after each request
 
 ```python
@@ -71,6 +72,16 @@ api_key_context: ContextVar[str]
 workspace_id_context: ContextVar[str]
 endpoint_context: ContextVar[str]
 ```
+
+#### 2b. Optional Monitoring ([monitoring.py](langsmith_mcp_server/monitoring.py))
+When configured, tool calls are traced to a **separate** LangSmith instance for observability (e.g. to monitor MCP usage by session). Configuration is read from environment (e.g. `.env`):
+
+- **LANGSMITH_MONITORING_API_KEY**: API key for the monitoring LangSmith instance (if unset, monitoring is disabled)
+- **LANGSMITH_MONITORING_ENDPOINT**: Optional endpoint URL
+- **LANGSMITH_MONITORING_WORKSPACE_ID**: Optional workspace ID
+- **LANGSMITH_MONITORING_PROJECT**: Project name for monitoring traces (default: `mcp-server-monitoring`)
+
+Each tool execution is logged with `run_type="tool"` via LangSmith's `@traceable` decorator; inputs and outputs are captured, and `session_id` is set in run metadata so you can filter/analyze by session. For tracing to be sent, `LANGSMITH_TRACING` must be set to `"true"` (see LangSmith custom instrumentation docs).
 
 #### 3. Client Management ([common/helpers.py](langsmith_mcp_server/common/helpers.py))
 Helper functions for LangSmith client creation and management:
@@ -101,6 +112,11 @@ Helper functions for LangSmith client creation and management:
 - [helpers.py](langsmith_mcp_server/common/helpers.py): Client creation, UUID conversion, dictionary utilities
 - [pagination.py](langsmith_mcp_server/common/pagination.py): Run and message pagination logic
 - [formatters.py](langsmith_mcp_server/common/formatters.py): Output formatting utilities
+
+**Monitoring ([monitoring.py](langsmith_mcp_server/monitoring.py))**
+- Optional: loads `.env`, creates a second LangSmith client from `LANGSMITH_MONITORING_*` env vars
+- Wraps each tool call in `@traceable(run_type="tool")` to the monitoring project with `session_id` in metadata
+- Session id is set per HTTP request in middleware (from headers or generated)
 
 ---
 
@@ -438,6 +454,7 @@ langsmith-mcp-server/
 │   ├── server.py                 # Main MCP server, FastMCP app, HTTP/stdio setup
 │   ├── streamable_http_patch.py  # Client-disconnect handling for HTTP streamable transport
 │   ├── middleware.py            # API key authentication middleware
+│   ├── monitoring.py             # Optional: trace tool calls to second LangSmith (session_id, run_type=tool)
 │   ├── common/
 │   │   ├── helpers.py            # Client creation, UUID conversion, utilities
 │   │   ├── pagination.py         # Pagination logic for runs and messages
