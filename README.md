@@ -217,6 +217,19 @@ The LangSmith MCP Server supports the following environment variables:
 - `LANGSMITH_WORKSPACE_ID` is useful when your API key has access to multiple workspaces
 - `LANGSMITH_ENDPOINT` allows you to use custom endpoints for self-hosted LangSmith installations or the EU region
 
+#### Optional: Tool-call monitoring to a second LangSmith instance
+
+You can log every MCP tool call (with inputs and outputs) to a **separate** LangSmith project for monitoring and analytics. Set these in your environment (e.g. in a `.env` file at the project root; the server loads `.env` via `python-dotenv`):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LANGSMITH_MONITORING_API_KEY` | Yes (to enable) | API key for the LangSmith instance used for monitoring |
+| `LANGSMITH_MONITORING_ENDPOINT` | No | Endpoint URL (default: cloud) |
+| `LANGSMITH_MONITORING_WORKSPACE_ID` | No | Workspace ID for the monitoring instance |
+| `LANGSMITH_MONITORING_PROJECT` | No | Project name for monitoring traces (default: `mcp-server-monitoring`) |
+
+Each tool run is traced with `run_type="tool"` and a **session_id** in metadata (from the `mcp-session-id`, `x-session-id`, or `x-request-id` header when using HTTP, or generated per request). For traces to be sent, set `LANGSMITH_TRACING=true` (see [LangSmith custom instrumentation](https://docs.smith.langchain.com)).
+
 
 ## 🐳 Docker Deployment (HTTP-Streamable)
 

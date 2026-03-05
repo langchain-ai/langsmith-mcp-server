@@ -16,7 +16,8 @@ dependencies = [
     "fastmcp==3.0.2",
     "langsmith>=0.4.42",
     "langchain-core>=1.2.5",
-    "uvicorn>=0.34.0"
+    "uvicorn>=0.34.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
@@ -35,7 +36,6 @@ test = [
 ]
 load = [
     "langchain-mcp-adapters>=0.2.1",
-    "python-dotenv>=1.0.0",
 ]
 
 [project.urls]

@@ -10,6 +10,11 @@ from langsmith_mcp_server.common.helpers import (
     get_api_key_and_endpoint_from_context,
     get_client_from_context,
 )
+from langsmith_mcp_server.monitoring import (
+    get_monitoring_session_id,
+    run_tool_traced_async,
+    run_tool_traced_sync,
+)
 from langsmith_mcp_server.services.tools.datasets import (
     list_datasets_tool,
     list_examples_tool,
@@ -59,7 +64,13 @@ def register_tools(mcp: FastMCP) -> None:
         try:
             client = await get_client_from_context(ctx)
             is_public_bool = is_public.lower() == "true"
-            return list_prompts_tool(client, is_public_bool, limit)
+            session_id = get_monitoring_session_id()
+            inputs = {"is_public": is_public, "limit": limit}
+
+            async def _do() -> Dict[str, Any]:
+                return list_prompts_tool(client, is_public_bool, limit)
+
+            return await run_tool_traced_async("list_prompts", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -78,7 +89,13 @@ def register_tools(mcp: FastMCP) -> None:
         """
         try:
             client = await get_client_from_context(ctx)
-            return get_prompt_tool(client, prompt_name=prompt_name)
+            session_id = get_monitoring_session_id()
+            inputs = {"prompt_name": prompt_name}
+
+            async def _do() -> Dict[str, Any]:
+                return get_prompt_tool(client, prompt_name=prompt_name)
+
+            return await run_tool_traced_async("get_prompt_by_name", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -87,7 +104,10 @@ def register_tools(mcp: FastMCP) -> None:
         """
         Call this tool when you need to understand how to create and push prompts to LangSmith.
         """
-        documentation = """
+        session_id = get_monitoring_session_id()
+
+        def _body() -> str:
+            return """
 Documentation tool for understanding how to create and push prompts to LangSmith.
 
 This tool provides comprehensive documentation on creating ChatPromptTemplate and
@@ -360,7 +380,8 @@ from langsmith import Client
 client = Client()  # Will automatically use environment variables
 ```
 """
-        return documentation
+
+        return run_tool_traced_sync("push_prompt", session_id, {}, _body)
 
     # Register conversation tools
     @mcp.tool()
@@ -393,14 +414,26 @@ client = Client()  # Will automatically use environment variables
         """
         try:
             client = await get_client_from_context(ctx)
-            return get_thread_history_tool(
-                client,
-                thread_id,
-                project_name,
-                page_number=page_number,
-                max_chars_per_page=max_chars_per_page,
-                preview_chars=preview_chars,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {
+                "thread_id": thread_id,
+                "project_name": project_name,
+                "page_number": page_number,
+                "max_chars_per_page": max_chars_per_page,
+                "preview_chars": preview_chars,
+            }
+
+            async def _do() -> Dict[str, Any]:
+                return get_thread_history_tool(
+                    client,
+                    thread_id,
+                    project_name,
+                    page_number=page_number,
+                    max_chars_per_page=max_chars_per_page,
+                    preview_chars=preview_chars,
+                )
+
+            return await run_tool_traced_async("get_thread_history", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -537,24 +570,44 @@ client = Client()  # Will automatically use environment variables
                 elif is_root.lower() == "false":
                     parsed_is_root = False
 
-            # Always use paginated fetch_runs_tool (now supports pagination built-in)
-            return fetch_runs_tool(
-                client,
-                project_name=parsed_project_name,
-                page_number=page_number,
-                max_chars_per_page=max_chars_per_page,
-                preview_chars=preview_chars,
-                trace_id=trace_id,
-                run_type=run_type,
-                error=parsed_error,
-                is_root=parsed_is_root,
-                filter=filter,
-                trace_filter=trace_filter,
-                tree_filter=tree_filter,
-                order_by=order_by,
-                limit=limit,
-                reference_example_id=reference_example_id,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {
+                "project_name": project_name,
+                "limit": limit,
+                "page_number": page_number,
+                "trace_id": trace_id,
+                "run_type": run_type,
+                "error": error,
+                "is_root": is_root,
+                "filter": filter,
+                "trace_filter": trace_filter,
+                "tree_filter": tree_filter,
+                "order_by": order_by,
+                "reference_example_id": reference_example_id,
+                "max_chars_per_page": max_chars_per_page,
+                "preview_chars": preview_chars,
+            }
+
+            async def _do() -> Dict[str, Any]:
+                return fetch_runs_tool(
+                    client,
+                    project_name=parsed_project_name,
+                    page_number=page_number,
+                    max_chars_per_page=max_chars_per_page,
+                    preview_chars=preview_chars,
+                    trace_id=trace_id,
+                    run_type=run_type,
+                    error=parsed_error,
+                    is_root=parsed_is_root,
+                    filter=filter,
+                    trace_filter=trace_filter,
+                    tree_filter=tree_filter,
+                    order_by=order_by,
+                    limit=limit,
+                    reference_example_id=reference_example_id,
+                )
+
+            return await run_tool_traced_async("fetch_runs", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -672,14 +725,26 @@ client = Client()  # Will automatically use environment variables
             parsed_more_info = more_info.lower() == "true"
             if reference_dataset_id is not None and reference_dataset_name is not None:
                 parsed_more_info = True
-            return list_projects_tool(
-                client,
-                limit=limit,
-                project_name=project_name,
-                more_info=parsed_more_info,
-                reference_dataset_id=reference_dataset_id,
-                reference_dataset_name=reference_dataset_name,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {
+                "limit": limit,
+                "project_name": project_name,
+                "more_info": more_info,
+                "reference_dataset_id": reference_dataset_id,
+                "reference_dataset_name": reference_dataset_name,
+            }
+
+            async def _do() -> Dict[str, Any]:
+                return list_projects_tool(
+                    client,
+                    limit=limit,
+                    project_name=project_name,
+                    more_info=parsed_more_info,
+                    reference_dataset_id=reference_dataset_id,
+                    reference_dataset_name=reference_dataset_name,
+                )
+
+            return await run_tool_traced_async("list_projects", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -711,17 +776,28 @@ client = Client()  # Will automatically use environment variables
         try:
             api_key, endpoint = await get_api_key_and_endpoint_from_context(ctx)
             on_current = on_current_plan.lower() == "true"
-            result = get_billing_usage_tool(
-                api_key=api_key,
-                endpoint=endpoint,
-                starting_on=starting_on,
-                ending_before=ending_before,
-                on_current_plan=on_current,
-                workspace=workspace,
-            )
-            if isinstance(result, dict) and "error" in result:
-                return result
-            return {"usage": result}
+            session_id = get_monitoring_session_id()
+            inputs = {
+                "starting_on": starting_on,
+                "ending_before": ending_before,
+                "workspace": workspace,
+                "on_current_plan": on_current_plan,
+            }
+
+            async def _do() -> Dict[str, Any]:
+                result = get_billing_usage_tool(
+                    api_key=api_key,
+                    endpoint=endpoint,
+                    starting_on=starting_on,
+                    ending_before=ending_before,
+                    on_current_plan=on_current,
+                    workspace=workspace,
+                )
+                if isinstance(result, dict) and "error" in result:
+                    return result
+                return {"usage": result}
+
+            return await run_tool_traced_async("get_billing_usage", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -831,13 +907,24 @@ client = Client()  # Will automatically use environment variables
         """  # noqa: W293
         try:
             client = await get_client_from_context(ctx)
-            return list_experiments_tool(
-                client,
-                reference_dataset_id=reference_dataset_id,
-                reference_dataset_name=reference_dataset_name,
-                limit=limit,
-                project_name=project_name,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {
+                "reference_dataset_id": reference_dataset_id,
+                "reference_dataset_name": reference_dataset_name,
+                "limit": limit,
+                "project_name": project_name,
+            }
+
+            async def _do() -> Dict[str, Any]:
+                return list_experiments_tool(
+                    client,
+                    reference_dataset_id=reference_dataset_id,
+                    reference_dataset_name=reference_dataset_name,
+                    limit=limit,
+                    project_name=project_name,
+                )
+
+            return await run_tool_traced_async("list_experiments", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -891,15 +978,28 @@ client = Client()  # Will automatically use environment variables
                 except (json.JSONDecodeError, AttributeError):
                     parsed_metadata = None
 
-            return list_datasets_tool(
-                client,
-                dataset_ids=parsed_dataset_ids,
-                data_type=data_type,
-                dataset_name=dataset_name,
-                dataset_name_contains=dataset_name_contains,
-                metadata=parsed_metadata,
-                limit=limit,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {
+                "dataset_ids": dataset_ids,
+                "data_type": data_type,
+                "dataset_name": dataset_name,
+                "dataset_name_contains": dataset_name_contains,
+                "metadata": metadata,
+                "limit": limit,
+            }
+
+            async def _do() -> Dict[str, Any]:
+                return list_datasets_tool(
+                    client,
+                    dataset_ids=parsed_dataset_ids,
+                    data_type=data_type,
+                    dataset_name=dataset_name,
+                    dataset_name_contains=dataset_name_contains,
+                    metadata=parsed_metadata,
+                    limit=limit,
+                )
+
+            return await run_tool_traced_async("list_datasets", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -983,20 +1083,38 @@ client = Client()  # Will automatically use environment variables
             parsed_limit = int(limit) if limit else None
             parsed_offset = int(offset) if offset else None
 
-            return list_examples_tool(
-                client,
-                dataset_id=dataset_id,
-                dataset_name=dataset_name,
-                example_ids=parsed_example_ids,
-                filter=filter,
-                metadata=parsed_metadata,
-                splits=parsed_splits,
-                inline_s3_urls=parsed_inline_s3_urls,
-                include_attachments=parsed_include_attachments,
-                as_of=as_of,
-                limit=parsed_limit,
-                offset=parsed_offset,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {
+                "dataset_id": dataset_id,
+                "dataset_name": dataset_name,
+                "example_ids": example_ids,
+                "filter": filter,
+                "metadata": metadata,
+                "splits": splits,
+                "inline_s3_urls": inline_s3_urls,
+                "include_attachments": include_attachments,
+                "as_of": as_of,
+                "limit": limit,
+                "offset": offset,
+            }
+
+            async def _do() -> Dict[str, Any]:
+                return list_examples_tool(
+                    client,
+                    dataset_id=dataset_id,
+                    dataset_name=dataset_name,
+                    example_ids=parsed_example_ids,
+                    filter=filter,
+                    metadata=parsed_metadata,
+                    splits=parsed_splits,
+                    inline_s3_urls=parsed_inline_s3_urls,
+                    include_attachments=parsed_include_attachments,
+                    as_of=as_of,
+                    limit=parsed_limit,
+                    offset=parsed_offset,
+                )
+
+            return await run_tool_traced_async("list_examples", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -1033,11 +1151,17 @@ client = Client()  # Will automatically use environment variables
         """
         try:
             client = await get_client_from_context(ctx)
-            return read_dataset_tool(
-                client,
-                dataset_id=dataset_id,
-                dataset_name=dataset_name,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {"dataset_id": dataset_id, "dataset_name": dataset_name}
+
+            async def _do() -> Dict[str, Any]:
+                return read_dataset_tool(
+                    client,
+                    dataset_id=dataset_id,
+                    dataset_name=dataset_name,
+                )
+
+            return await run_tool_traced_async("read_dataset", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -1071,11 +1195,17 @@ client = Client()  # Will automatically use environment variables
         """
         try:
             client = await get_client_from_context(ctx)
-            return read_example_tool(
-                client,
-                example_id=example_id,
-                as_of=as_of,
-            )
+            session_id = get_monitoring_session_id()
+            inputs = {"example_id": example_id, "as_of": as_of}
+
+            async def _do() -> Dict[str, Any]:
+                return read_example_tool(
+                    client,
+                    example_id=example_id,
+                    as_of=as_of,
+                )
+
+            return await run_tool_traced_async("read_example", session_id, inputs, _do)
         except Exception as e:
             return {"error": str(e)}
 
@@ -1084,7 +1214,10 @@ client = Client()  # Will automatically use environment variables
         """
         Call this tool when you need to understand how to create datasets in LangSmith.
         """
-        documentation = """
+        session_id = get_monitoring_session_id()
+
+        def _body() -> str:
+            return """
 Documentation tool for understanding how to create datasets in LangSmith.
 
 This tool provides comprehensive documentation on creating datasets programmatically
@@ -1278,14 +1411,18 @@ None
 - Always ensure you have the required dependencies installed before using these patterns
 - The dataset name should be unique and descriptive
 """
-        return documentation
+
+        return run_tool_traced_sync("create_dataset", session_id, {}, _body)
 
     @mcp.tool()
     def update_examples(ctx: Context = None) -> str:
         """
         Call this tool when you need to understand how to update dataset examples in LangSmith.
         """
-        documentation = """
+        session_id = get_monitoring_session_id()
+
+        def _body() -> str:
+            return """
 Documentation tool for understanding how to update dataset examples in LangSmith.
 
 This tool provides comprehensive documentation on updating examples programmatically
@@ -1444,14 +1581,18 @@ None
 - Always ensure you have the required dependencies installed before using these patterns
 - Example IDs can be obtained from `list_examples()` or `read_example()` methods
 """
-        return documentation
+
+        return run_tool_traced_sync("update_examples", session_id, {}, _body)
 
     @mcp.tool()
     def run_experiment(ctx: Context = None) -> str:
         """
         Call this tool when you need to understand how to run experiments and evaluations in LangSmith.
         """
-        documentation = """
+        session_id = get_monitoring_session_id()
+
+        def _body() -> str:
+            return """
 Documentation tool for understanding how to run experiments and evaluations in LangSmith.
 
 This tool provides comprehensive documentation on running evaluations using LangSmith's
@@ -1750,4 +1891,5 @@ None
 - For agent-specific evaluations, consider using the `agentevals` package
 - Evaluation results are stored as feedback in LangSmith and can be viewed in the UI
 """
-        return documentation
+
+        return run_tool_traced_sync("run_experiment", session_id, {}, _body)
