@@ -774,8 +774,7 @@ client = Client()  # Will automatically use environment variables
             List of billing metric objects with augmented groups, or dict with "error" key
         """
         try:
-            api_key, endpoint = await get_api_key_and_endpoint_from_context(ctx)
-            ws_id = (await ctx.get_state("workspace_id")) or None
+            api_key, endpoint, tenant_id = await get_api_key_and_endpoint_from_context(ctx)
             on_current = on_current_plan.lower() == "true"
             session_id = get_monitoring_session_id()
             inputs = {
@@ -793,7 +792,7 @@ client = Client()  # Will automatically use environment variables
                     ending_before=ending_before,
                     on_current_plan=on_current,
                     workspace=workspace,
-                    workspace_id=ws_id,
+                    tenant_id=tenant_id,
                 )
                 if isinstance(result, dict) and "error" in result:
                     return result
