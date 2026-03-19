@@ -3,6 +3,7 @@
 from typing import Any, Dict
 
 from langchain_core.load import dumpd
+from langchain_core.load.serializable import Serializable
 from langsmith import Client
 
 
@@ -80,6 +81,12 @@ def get_prompt_tool(client: Client, prompt_name: str = None, prompt_id: str = No
             return {"error": "Error: Either prompt_name or prompt_id must be provided."}
         # Convert prompt object to JSON-serializable dictionary
         try:
+            # LangChain objects (subclasses of Serializable) must be serialized
+            # with dumpd() — model_dump() loses nested template content (e.g.
+            # SystemMessagePromptTemplate becomes {}). For non-LangChain objects
+            # the existing model_dump / dict / dumpd fallback chain still applies.
+            if isinstance(prompt, Serializable):
+                return dumpd(prompt)
             # Try using model_dump() if available (Pydantic v2)
             if hasattr(prompt, "model_dump"):
                 return prompt.model_dump()
