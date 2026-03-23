@@ -1,4 +1,4 @@
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 # Install build dependencies
 RUN apk add --no-cache gcc musl-dev libffi-dev
