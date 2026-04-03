@@ -58,7 +58,7 @@ def list_prompts_tool(client: Client, is_public: bool = False, limit: int = 20) 
         return {"error": f"Error fetching prompts: {str(e)}"}
 
 
-def get_prompt_tool(client: Client, prompt_name: str = None, prompt_id: str = None) -> dict:
+def get_prompt_tool(client: Client, prompt_name: str | None = None, prompt_id: str | None = None) -> dict:
     """
     Get a specific prompt (including model/tool bindings) by its name or ID, and return its full
     string representation.

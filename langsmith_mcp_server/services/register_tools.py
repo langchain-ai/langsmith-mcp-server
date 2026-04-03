@@ -304,9 +304,9 @@ You can create a reusable helper function:
 def push_prompt_to_langsmith(
     prompt,
     prompt_identifier: str,
-    description: str = None,
+    description: str | None = None,
     tags: list = None,
-    is_public: bool = None,
+    is_public: bool | None = None,
 ) -> str:
     '''
     Push a prompt to LangSmith with optional metadata.
@@ -442,15 +442,15 @@ client = Client()  # Will automatically use environment variables
         project_name: str,
         limit: int,
         page_number: int = 1,
-        trace_id: str = None,
-        run_type: str = None,
-        error: str = None,
-        is_root: str = None,
-        filter: str = None,
-        trace_filter: str = None,
-        tree_filter: str = None,
+        trace_id: str | None = None,
+        run_type: str | None = None,
+        error: str | None = None,
+        is_root: str | None = None,
+        filter: str | None = None,
+        trace_filter: str | None = None,
+        tree_filter: str | None = None,
         order_by: str = "-start_time",
-        reference_example_id: str = None,
+        reference_example_id: str | None = None,
         max_chars_per_page: int = 25000,
         preview_chars: int = 150,
         ctx: Context = None,
@@ -615,10 +615,10 @@ client = Client()  # Will automatically use environment variables
     @mcp.tool()
     async def list_projects(
         limit: int = 5,
-        project_name: str = None,
+        project_name: str | None = None,
         more_info: str = "false",
-        reference_dataset_id: str = None,
-        reference_dataset_name: str = None,
+        reference_dataset_id: str | None = None,
+        reference_dataset_name: str | None = None,
         ctx: Context = None,
     ) -> Dict[str, Any]:
         """
