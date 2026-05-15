@@ -14,6 +14,7 @@ def _request(
     endpoint: str,
     path: str,
     params: dict[str, str] | None = None,
+    workspace_id: str | None = None,
 ) -> dict[str, Any] | list[Any]:
     """GET request to LangSmith API. Returns JSON (dict or list)."""
     base = (endpoint or _DEFAULT_ENDPOINT).rstrip("/")
@@ -23,6 +24,8 @@ def _request(
     req = urllib.request.Request(url, method="GET")
     req.add_header("Accept", "application/json")
     req.add_header("X-API-Key", api_key)
+    if workspace_id:
+        req.add_header("X-Tenant-Id", workspace_id)
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode())
@@ -33,14 +36,18 @@ def _request(
         return {"error": str(e)}
 
 
-def _list_workspaces(api_key: str, endpoint: str) -> dict[str, Any] | list[Any]:
+def _list_workspaces(
+    api_key: str, endpoint: str, workspace_id: str | None = None
+) -> dict[str, Any] | list[Any]:
     """GET /api/v1/workspaces."""
-    return _request(api_key, endpoint, "/api/v1/workspaces")
+    return _request(api_key, endpoint, "/api/v1/workspaces", workspace_id=workspace_id)
 
 
-def _get_workspace_by_id(api_key: str, endpoint: str, workspace_id: str) -> dict[str, Any]:
+def _get_workspace_by_id(
+    api_key: str, endpoint: str, workspace_id: str, tenant_id: str | None = None
+) -> dict[str, Any]:
     """GET /api/v1/workspaces/{id}."""
-    out = _request(api_key, endpoint, f"/api/v1/workspaces/{workspace_id}")
+    out = _request(api_key, endpoint, f"/api/v1/workspaces/{workspace_id}", workspace_id=tenant_id)
     return out if isinstance(out, dict) else {"error": "Unexpected response"}
 
 
@@ -48,18 +55,19 @@ def _build_workspace_id_to_name(
     api_key: str,
     endpoint: str,
     single_workspace: str | None,
+    tenant_id: str | None = None,
 ) -> dict[str, str]:
     """Build workspace_id -> name. If single_workspace set, fetch only that one."""
     id_to_name: dict[str, str] = {}
     if single_workspace:
         single_workspace = single_workspace.strip()
         if len(single_workspace) == 36 and single_workspace.count("-") == 4:
-            resp = _get_workspace_by_id(api_key, endpoint, single_workspace)
+            resp = _get_workspace_by_id(api_key, endpoint, single_workspace, tenant_id=tenant_id)
             if isinstance(resp, dict) and "error" not in resp and resp.get("id"):
                 name = resp.get("display_name") or resp.get("name") or single_workspace
                 id_to_name[str(resp["id"])] = name
                 return id_to_name
-        ws_resp = _list_workspaces(api_key, endpoint)
+        ws_resp = _list_workspaces(api_key, endpoint, workspace_id=tenant_id)
         workspaces: list[dict] = []
         if isinstance(ws_resp, list):
             workspaces = [w for w in ws_resp if isinstance(w, dict)]
@@ -75,7 +83,7 @@ def _build_workspace_id_to_name(
                 id_to_name[wid] = name
                 return id_to_name
         return id_to_name
-    ws_resp = _list_workspaces(api_key, endpoint)
+    ws_resp = _list_workspaces(api_key, endpoint, workspace_id=tenant_id)
     if isinstance(ws_resp, list):
         for w in ws_resp:
             if isinstance(w, dict) and w.get("id"):
@@ -121,6 +129,7 @@ def get_billing_usage_tool(
     ending_before: str,
     on_current_plan: bool = True,
     workspace: str | None = None,
+    workspace_id: str | None = None,
 ) -> dict[str, Any] | list[dict]:
     """
     Fetch org billing usage (trace counts) with workspace names inline.
@@ -137,6 +146,8 @@ def get_billing_usage_tool(
         ending_before: End of range (ISO 8601).
         on_current_plan: If true, only usage on current plan.
         workspace: Optional single workspace UUID or name to filter to.
+        workspace_id: Optional workspace ID used as the X-Tenant-Id header for
+            org-scoped API keys.
 
     Returns:
         List of billing metrics with groups as
@@ -148,12 +159,20 @@ def get_billing_usage_tool(
         "ending_before": ending_before,
         "on_current_plan": "true" if on_current_plan else "false",
     }
-    raw = _request(api_key, endpoint, "/api/v1/orgs/current/billing/usage", params)
+    raw = _request(
+        api_key,
+        endpoint,
+        "/api/v1/orgs/current/billing/usage",
+        params,
+        workspace_id=workspace_id,
+    )
     if isinstance(raw, dict) and "error" in raw:
         return raw
     if not isinstance(raw, list) or not raw:
         return {"error": "Unexpected billing usage response"}
-    workspace_id_to_name = _build_workspace_id_to_name(api_key, endpoint, workspace)
+    workspace_id_to_name = _build_workspace_id_to_name(
+        api_key, endpoint, workspace, tenant_id=workspace_id
+    )
     only_workspace_id: str | None = None
     if workspace and workspace_id_to_name:
         only_workspace_id = next(iter(workspace_id_to_name.keys()), None)

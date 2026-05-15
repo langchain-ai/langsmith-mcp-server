@@ -170,6 +170,26 @@ async def get_api_key_and_endpoint_from_context(ctx: Context) -> tuple[str, str]
     return (str(api_key), str(endpoint).rstrip("/"))
 
 
+async def get_api_key_endpoint_workspace_from_context(
+    ctx: Context,
+) -> tuple[str, str, str | None]:
+    """
+    Get API key, endpoint, and workspace ID from FastMCP context.
+
+    Used by tools that call LangSmith REST APIs directly and need to forward
+    workspace context via headers.
+    """
+    await get_client_from_context(ctx)  # populates ctx state
+    api_key = await ctx.get_state("api_key")
+    endpoint = (await ctx.get_state("endpoint")) or "https://api.smith.langchain.com"
+    workspace_id = (await ctx.get_state("workspace_id")) or None
+    return (
+        str(api_key),
+        str(endpoint).rstrip("/"),
+        str(workspace_id) if workspace_id else None,
+    )
+
+
 def get_langgraph_app_host_name(run_stats: dict) -> Optional[str]:
     """
     Get the langgraph app host name from the run stats
