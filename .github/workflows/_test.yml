@@ -24,7 +24,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=ci-light
     timeout-minutes: 20
     name: "make test #${{ inputs.python-version }}"
     steps:

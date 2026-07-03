@@ -30,7 +30,7 @@ jobs:
   build:
     if: github.ref == 'refs/heads/main' || inputs.dangerous-nonmain-release
     environment: Scheduled testing
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=ci-light
 
     outputs:
       pkg-name: ${{ steps.check-version.outputs.pkg-name }}
@@ -80,7 +80,7 @@ jobs:
   publish:
     needs:
       - build
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=ci-light
     permissions:
       # This permission is used for trusted publishing:
       # https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/
@@ -119,7 +119,7 @@ jobs:
     needs:
       - build
       - publish
-    runs-on: ubuntu-latest
+    runs-on: runs-on=${{ github.run_id }}/runner=ci-light
     permissions:
       # This permission is needed by `ncipollo/release-action` to
       # create the GitHub release.
