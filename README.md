@@ -1,5 +1,7 @@
 # 🦜🛠️ LangSmith MCP Server
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Flangchain-ai%2Flangsmith-mcp-server.svg)](https://mcptoplist.com/server/glama%2Flangchain-ai%2Flangsmith-mcp-server)
+
 
 ![LangSmith MCP Hero](https://raw.githubusercontent.com/langchain-ai/langsmith-mcp-server/refs/heads/main/docs/assets/langsmith_mcp_hero.png)
 
