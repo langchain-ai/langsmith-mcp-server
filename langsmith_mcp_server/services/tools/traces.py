@@ -37,7 +37,7 @@ except ImportError:
 
 
 def fetch_trace_tool(
-    client: Client, project_name: str = None, trace_id: str = None
+    client: Client, project_name: str | None = None, trace_id: str | None = None
 ) -> Dict[str, Any]:
     """
     Fetch the trace content for a specific project or specify a trace ID.
@@ -194,8 +194,8 @@ def get_thread_history_tool(
 
 def get_project_runs_stats_tool(
     client: Client,
-    project_name: str = None,
-    trace_id: str = None,
+    project_name: str | None = None,
+    trace_id: str | None = None,
 ) -> Dict[str, Any]:
     """
     Get the project runs stats.
@@ -243,10 +243,10 @@ def get_project_runs_stats_tool(
 def list_projects_tool(
     client: Client,
     limit: int = 5,
-    project_name: str = None,
+    project_name: str | None = None,
     more_info: bool = False,
-    reference_dataset_id: str = None,
-    reference_dataset_name: str = None,
+    reference_dataset_id: str | None = None,
+    reference_dataset_name: str | None = None,
 ) -> Dict[str, Any]:
     """
     List projects from LangSmith.

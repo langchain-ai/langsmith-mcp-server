@@ -10,9 +10,9 @@ from langsmith_mcp_server.common.helpers import _parse_as_of_parameter
 def list_datasets_tool(
     client: Client,
     dataset_ids: list = None,
-    data_type: str = None,
-    dataset_name: str = None,
-    dataset_name_contains: str = None,
+    data_type: str | None = None,
+    dataset_name: str | None = None,
+    dataset_name_contains: str | None = None,
     metadata: dict = None,
     limit: int = 20,
 ) -> Dict[str, Any]:
@@ -87,17 +87,17 @@ def list_datasets_tool(
 
 def list_examples_tool(
     client: Client,
-    dataset_id: str = None,
-    dataset_name: str = None,
+    dataset_id: str | None = None,
+    dataset_name: str | None = None,
     example_ids: list = None,
-    filter: str = None,
+    filter: str | None = None,
     metadata: dict = None,
     splits: list = None,
-    inline_s3_urls: bool = None,
-    include_attachments: bool = None,
-    as_of: str = None,
-    limit: int = None,
-    offset: int = None,
+    inline_s3_urls: bool | None = None,
+    include_attachments: bool | None = None,
+    as_of: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> Dict[str, Any]:
     """
     Fetch examples from a LangSmith dataset.
@@ -184,8 +184,8 @@ def list_examples_tool(
 
 def read_dataset_tool(
     client: Client,
-    dataset_id: str = None,
-    dataset_name: str = None,
+    dataset_id: str | None = None,
+    dataset_name: str | None = None,
 ) -> Dict[str, Any]:
     """
     Read a specific dataset from LangSmith.
@@ -247,7 +247,7 @@ def read_dataset_tool(
 def read_example_tool(
     client: Client,
     example_id: str,
-    as_of: str = None,
+    as_of: str | None = None,
 ) -> Dict[str, Any]:
     """
     Read a specific example from LangSmith.
