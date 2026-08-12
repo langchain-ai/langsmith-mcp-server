@@ -21,30 +21,35 @@ The server enables powerful capabilities including:
 
 ## 🚀 Quickstart
 
-A **hosted version** of the LangSmith MCP Server is available over HTTP-streamable transport, so you can connect without running the server yourself:
+The fastest way to get going is to run the server locally over stdio with [`uvx`](https://github.com/astral-sh/uv) — no clone, no virtualenv, no Docker. `uvx` fetches the published [`langsmith-mcp-server`](https://pypi.org/project/langsmith-mcp-server/) package and launches it on demand.
 
-- **URL:** `https://langsmith-mcp-server.onrender.com/mcp`
-- **Hosting:** [Render](https://render.com), built from this public repo using the project's Dockerfile.
+**Prerequisite:** install `uv` ([instructions](https://github.com/astral-sh/uv#installation)):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-Use it like any HTTP-streamable MCP server: point your client at the URL and send your LangSmith API key in the `LANGSMITH-API-KEY` header. No local install or Docker required.
-
-**Example (Cursor `mcp.json`):**
+**Example MCP client config (Cursor / Claude Desktop / Claude Code `mcp.json`):**
 ```json
 {
   "mcpServers": {
-    "LangSmith MCP (Hosted)": {
-      "url": "https://langsmith-mcp-server.onrender.com/mcp",
-      "headers": {
-        "LANGSMITH-API-KEY": "lsv2_pt_your_api_key_here"
+    "langsmith": {
+      "command": "uvx",
+      "args": ["langsmith-mcp-server"],
+      "env": {
+        "LANGSMITH_API_KEY": "lsv2_pt_your_api_key_here",
+        "LANGSMITH_WORKSPACE_ID": "optional-workspace-uuid",
+        "LANGSMITH_ENDPOINT": "https://api.smith.langchain.com"
       }
     }
   }
 }
 ```
 
-Optional headers: `LANGSMITH-WORKSPACE-ID`, `LANGSMITH-ENDPOINT` (same as in the [Docker Deployment](#-docker-deployment-http-streamable) section below).
+- `LANGSMITH_API_KEY` is required.
+- `LANGSMITH_WORKSPACE_ID` is optional (use it when your API key is scoped to multiple workspaces).
+- `LANGSMITH_ENDPOINT` is optional — set it to your **self-hosted** LangSmith URL if you're not on [LangSmith Cloud](https://smith.langchain.com).
 
-> **Note:** This deployed instance is intended for [LangSmith Cloud](https://smith.langchain.com). If you use a **self-hosted** LangSmith instance, run the server yourself and point it at your endpoint—see the [Docker Deployment](#-docker-deployment-http-streamable) section below.
+> **Note:** A previous version of this README advertised a hosted HTTP-streamable endpoint at `https://langsmith-mcp-server.onrender.com/mcp`. That deployment is currently unavailable (responds with `HTTP 404`), so the stdio install above is the recommended path. If you specifically need HTTP-streamable transport, deploy it yourself — see the [Docker Deployment](#-docker-deployment-http-streamable) section below.
 
 ## 🛠️ Available Tools
 
