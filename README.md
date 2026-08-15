@@ -127,7 +127,7 @@ Once you have the LangSmith MCP Server, you can integrate it with various MCP-co
 
 1. Install the package:
    ```bash
-   uv run pip install --upgrade langsmith-mcp-server
+   uv pip install --upgrade langsmith-mcp-server
    ```
 
 2. Add to your client MCP config:
