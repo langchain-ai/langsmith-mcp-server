@@ -8,6 +8,7 @@ from fastmcp.server import Context
 
 from langsmith_mcp_server.common.helpers import (
     get_api_key_and_endpoint_from_context,
+    get_api_key_endpoint_workspace_from_context,
     get_client_from_context,
 )
 from langsmith_mcp_server.monitoring import (
@@ -774,7 +775,9 @@ client = Client()  # Will automatically use environment variables
             List of billing metric objects with augmented groups, or dict with "error" key
         """
         try:
-            api_key, endpoint = await get_api_key_and_endpoint_from_context(ctx)
+            api_key, endpoint, workspace_id = await get_api_key_endpoint_workspace_from_context(
+                ctx
+            )
             on_current = on_current_plan.lower() == "true"
             session_id = get_monitoring_session_id()
             inputs = {
@@ -792,6 +795,7 @@ client = Client()  # Will automatically use environment variables
                     ending_before=ending_before,
                     on_current_plan=on_current,
                     workspace=workspace,
+                    workspace_id=workspace_id,
                 )
                 if isinstance(result, dict) and "error" in result:
                     return result
